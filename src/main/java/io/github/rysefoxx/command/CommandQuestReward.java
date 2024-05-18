@@ -1,5 +1,6 @@
 package io.github.rysefoxx.command;
 
+import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.enums.QuestRewardType;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.reward.QuestRewardModel;
@@ -11,6 +12,8 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.logging.Level;
 
 /**
  * @author Rysefoxx
@@ -82,6 +85,10 @@ public class CommandQuestReward implements CommandExecutor {
 
         this.questRewardService.update(id, rewardString, type).thenAccept(resultType -> {
             this.languageService.sendTranslatedMessage(player, "quest_reward_update_" + resultType.toString().toLowerCase());
+        }).exceptionally(e -> {
+            player.sendRichMessage("An error occurred while updating the quest reward. Please try again later.");
+            PlayLegendQuest.getLog().log(Level.SEVERE, "An error occurred while updating the quest reward.", e);
+            return null;
         });
     }
 
@@ -100,6 +107,10 @@ public class CommandQuestReward implements CommandExecutor {
         long id = Long.parseLong(args[1]);
         this.questRewardService.delete(id).thenAccept(resultType -> {
             this.languageService.sendTranslatedMessage(player, "quest_reward_delete_" + resultType.toString().toLowerCase());
+        }).exceptionally(e -> {
+            player.sendRichMessage("An error occurred while deleting the quest reward. Please try again later.");
+            PlayLegendQuest.getLog().log(Level.SEVERE, "An error occurred while deleting the quest reward.", e);
+            return null;
         });
     }
 
@@ -130,6 +141,10 @@ public class CommandQuestReward implements CommandExecutor {
 
         this.questRewardService.save(questRewardModel).thenAccept(resultType -> {
             this.languageService.sendTranslatedMessage(player, "quest_reward_save_" + resultType.toString().toLowerCase());
+        }).exceptionally(e -> {
+            player.sendRichMessage("An error occurred while saving the quest reward. Please try again later.");
+            PlayLegendQuest.getLog().log(Level.SEVERE, "An error occurred while saving the quest reward.", e);
+            return null;
         });
     }
 

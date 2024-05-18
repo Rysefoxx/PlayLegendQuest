@@ -147,7 +147,7 @@ public class CommandQuest implements CommandExecutor {
                 return;
             }
 
-            if(!questModel.isConfigured()) {
+            if (!questModel.isConfigured()) {
                 this.languageService.sendTranslatedMessage(player, "quest_not_configured");
                 return;
             }
@@ -170,7 +170,13 @@ public class CommandQuest implements CommandExecutor {
                         futures.add(this.questUserProgressService.save(questUserProgressModel));
                     }
 
-                    return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(v -> ResultType.SUCCESS);
+                    return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                            .thenApply(v -> ResultType.SUCCESS)
+                            .exceptionally(e -> {
+                                player.sendRichMessage("Error while accepting quest");
+                                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while accepting quest: " + e.getMessage(), e);
+                                return ResultType.ERROR;
+                            });
                 }).thenAccept(resultType -> {
                     this.scoreboardService.update(player);
                     this.languageService.sendTranslatedMessage(player, "quest_accepted_" + resultType.toString().toLowerCase());
@@ -249,6 +255,7 @@ public class CommandQuest implements CommandExecutor {
 
             abstractQuestRequirement.sendInfo(player, this.languageService);
         }).exceptionally(e -> {
+            player.sendRichMessage("Error while searching for quest requirement");
             PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest requirement: " + e.getMessage(), e);
             return null;
         });
@@ -283,10 +290,12 @@ public class CommandQuest implements CommandExecutor {
             return this.questService.removeRequirement(questModel, requirement).thenAccept(resultType -> {
                 this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
             }).exceptionally(e -> {
+                player.sendRichMessage("Error while removing requirement from quest");
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Error removing requirement from quest: " + e.getMessage(), e);
                 return null;
             });
         }).exceptionally(e -> {
+            player.sendRichMessage("Error while searching for quest");
             PlayLegendQuest.getLog().log(Level.SEVERE, "Error removing requirement from quest: " + e.getMessage(), e);
             return null;
         });
@@ -328,13 +337,21 @@ public class CommandQuest implements CommandExecutor {
                 }
 
                 questModel.getRequirements().add(requirement);
-
                 return this.questService.save(questModel).thenAccept(resultType -> {
                     this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
+                }).exceptionally(e -> {
+                    player.sendRichMessage("Error while saving requirement to quest");
+                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving requirement to quest: " + e.getMessage(), e);
+                    return null;
                 });
+            }).exceptionally(e -> {
+                player.sendRichMessage("Error while saving requirement");
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while saving requirement: " + e.getMessage(), e);
+                return null;
             });
         }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error adding requirement to quest: " + e.getMessage(), e);
+            player.sendRichMessage("Error while finding quest");
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while finding quest: " + e.getMessage(), e);
             return null;
         });
     }
@@ -349,7 +366,8 @@ public class CommandQuest implements CommandExecutor {
             QuestModel questModel = questUserProgressModels.getFirst().getQuest();
             questModel.sendProgressToUser(player, this.languageService, questUserProgressModels);
         }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress: " + e.getMessage(), e);
+            player.sendRichMessage("Error while searching for user quest progress");
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for user quest progress: " + e.getMessage(), e);
             return null;
         });
     }
@@ -376,10 +394,12 @@ public class CommandQuest implements CommandExecutor {
 
                 this.languageService.sendTranslatedMessage(player, "quest_create_error");
             }).exceptionally(e -> {
+                player.sendRichMessage("Error while saving quest");
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving quest: " + e.getMessage(), e);
                 return null;
             });
         }).exceptionally(e -> {
+            player.sendRichMessage("Error while searching for quest");
             PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest " + e.getMessage(), e);
             return null;
         });
@@ -390,6 +410,7 @@ public class CommandQuest implements CommandExecutor {
         this.questService.delete(name).thenAccept(resultType -> {
             this.languageService.sendTranslatedMessage(player, "quest_deleted_" + resultType.toString().toLowerCase());
         }).exceptionally(e -> {
+            player.sendRichMessage("Error while deleting quest");
             PlayLegendQuest.getLog().log(Level.SEVERE, "Error deleting quest: " + e.getMessage(), e);
             return null;
         });
@@ -408,9 +429,14 @@ public class CommandQuest implements CommandExecutor {
             questModel.setPermission(permission);
             this.questService.save(questModel).thenAccept(resultType -> {
                 this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
+            }).exceptionally(e -> {
+                player.sendRichMessage("Error while saving permission for quest");
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving permission for quest: " + e.getMessage(), e);
+                return null;
             });
         }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error updating permission for quest: " + e.getMessage(), e);
+            player.sendRichMessage("Error while searching for quest");
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
             return null;
         });
     }
@@ -428,9 +454,13 @@ public class CommandQuest implements CommandExecutor {
             questModel.setDisplayName(displayName);
             this.questService.save(questModel).thenAccept(resultType -> {
                 this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
+            }).exceptionally(e -> {
+                player.sendRichMessage("Error while saving displayname for quest");
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving displayname for quest: " + e.getMessage(), e);
+                return null;
             });
         }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error updating displayname for quest: " + e.getMessage(), e);
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
             return null;
         });
     }
@@ -449,9 +479,13 @@ public class CommandQuest implements CommandExecutor {
             this.questService.save(questModel).thenAccept(resultType -> {
                 this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
                 this.scoreboardService.update(player);
+            }).exceptionally(e -> {
+                player.sendRichMessage("Error while saving description for quest");
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving description for quest: " + e.getMessage(), e);
+                return null;
             });
         }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error updating description for quest: " + e.getMessage(), e);
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
             return null;
         });
     }
@@ -475,9 +509,13 @@ public class CommandQuest implements CommandExecutor {
             questModel.setDuration(seconds);
             this.questService.save(questModel).thenAccept(resultType -> {
                 this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
+            }).exceptionally(e -> {
+                player.sendRichMessage("Error while saving duration for quest");
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving duration for quest: " + e.getMessage(), e);
+                return null;
             });
         }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error updating duration for quest: " + e.getMessage(), e);
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
             return null;
         });
 
@@ -512,10 +550,19 @@ public class CommandQuest implements CommandExecutor {
                 questModel.getRewards().add(questRewardModel);
                 return this.questService.save(questModel).thenAccept(resultType -> {
                     this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
+                }).exceptionally(e -> {
+                    player.sendRichMessage("Error while saving reward to quest");
+                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving reward to quest: " + e.getMessage(), e);
+                    return null;
                 });
+            }).exceptionally(e -> {
+                player.sendRichMessage("Error while searching for a reward");
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for a reward " + e.getMessage(), e);
+                return null;
             });
         }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error adding reward to quest: " + e.getMessage(), e);
+            player.sendRichMessage("Error while searching for quest");
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for a quest: " + e.getMessage(), e);
             return null;
         });
     }
@@ -549,10 +596,18 @@ public class CommandQuest implements CommandExecutor {
                 questModel.getRewards().removeIf(reward -> reward.getId().equals(rewardId));
                 return this.questService.save(questModel).thenAccept(resultType -> {
                     this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
+                }).exceptionally(e -> {
+                    player.sendRichMessage("Error while saving reward to quest");
+                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving reward to quest: " + e.getMessage(), e);
+                    return null;
                 });
+            }).exceptionally(e -> {
+                player.sendRichMessage("Error while searching for a reward");
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for a reward: " + e.getMessage(), e);
+                return null;
             });
         }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error removing reward to quest: " + e.getMessage(), e);
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for a quest: " + e.getMessage(), e);
             return null;
         });
     }
