@@ -13,6 +13,7 @@ import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.reward.QuestRewardService;
 import io.github.rysefoxx.scoreboard.ScoreboardService;
 import io.github.rysefoxx.util.Maths;
+import io.github.rysefoxx.util.StringUtils;
 import io.github.rysefoxx.util.TimeUtils;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
@@ -80,7 +81,7 @@ public class CommandQuest implements CommandExecutor {
             return true;
         }
 
-        if (args.length == 4 && args[0].equalsIgnoreCase("update") && args[1].equalsIgnoreCase("description")) {
+        if (args.length >= 4 && args[0].equalsIgnoreCase("update") && args[1].equalsIgnoreCase("description")) {
             updateDescription(player, args);
             return true;
         }
@@ -143,6 +144,11 @@ public class CommandQuest implements CommandExecutor {
         this.questService.findByName(name).thenAccept(questModel -> {
             if (questModel == null) {
                 this.languageService.sendTranslatedMessage(player, "quest_not_exist");
+                return;
+            }
+
+            if(!questModel.isConfigured()) {
+                this.languageService.sendTranslatedMessage(player, "quest_not_configured");
                 return;
             }
 
@@ -431,7 +437,7 @@ public class CommandQuest implements CommandExecutor {
 
     private void updateDescription(@NotNull Player player, String @NotNull [] args) {
         String name = args[2];
-        String description = args[3];
+        String description = StringUtils.join(args, " ", 3);
 
         this.questService.findByName(name).thenAccept(questModel -> {
             if (questModel == null) {
@@ -442,6 +448,7 @@ public class CommandQuest implements CommandExecutor {
             questModel.setDescription(description);
             this.questService.save(questModel).thenAccept(resultType -> {
                 this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
+                this.scoreboardService.update(player);
             });
         }).exceptionally(e -> {
             PlayLegendQuest.getLog().log(Level.SEVERE, "Error updating description for quest: " + e.getMessage(), e);

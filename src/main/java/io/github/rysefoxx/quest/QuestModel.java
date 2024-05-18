@@ -68,6 +68,10 @@ public class QuestModel {
         return this.rewards.stream().anyMatch(questRewardModel -> questRewardModel.getId().equals(rewardId));
     }
 
+    public boolean isConfigured() {
+        return !this.requirements.isEmpty() && this.duration > 0;
+    }
+
     public void sendProgressToUser(@NotNull Player player, @NotNull LanguageService languageService, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
         int completedRequirements = 0;
         String requirementTranslation = languageService.getTranslatedMessage(player, "quest_info_requirement");

@@ -129,12 +129,18 @@ public class ScoreboardService {
                 }
 
                 if (scoreboardEntry.predefinedValue() == ScoreboardPredefinedValue.QUEST_NAME) {
-                    String questName = questModel != null ? questModel.getName() : this.languageService.getTranslatedMessage(player, "quest_no_active");
+                    String questName = questModel != null ? questModel.getDisplayName() : this.languageService.getTranslatedMessage(player, "quest_no_active");
                     Component progress = Component.text(questName);
                     team.suffix(progress);
+                    continue;
+                }
+
+                if (scoreboardEntry.predefinedValue() == ScoreboardPredefinedValue.QUEST_DESCRIPTION) {
+                    String questDescription = (questModel != null && questModel.getDescription() != null) ? questModel.getDescription() : this.languageService.getTranslatedMessage(player, "quest_info_no_description");
+                    Component description = Component.text(questDescription);
+                    team.suffix(description);
                 }
             }
-
         });
     }
 
