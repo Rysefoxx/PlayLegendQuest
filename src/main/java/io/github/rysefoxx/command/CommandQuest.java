@@ -4,7 +4,6 @@ import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.enums.QuestRequirementType;
 import io.github.rysefoxx.enums.ResultType;
 import io.github.rysefoxx.language.LanguageService;
-import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.quest.AbstractQuestRequirement;
 import io.github.rysefoxx.quest.QuestModel;
@@ -222,39 +221,8 @@ public class CommandQuest implements CommandExecutor {
             }
 
             QuestModel questModel = questUserProgressModels.getFirst().getQuest();
-            int completedRequirements = 0;
-            StringBuilder progressDetails = new StringBuilder();
 
-            String requirementTranslation = this.languageService.getTranslatedMessage(player, "quest_info_requirement");
-
-            for (QuestUserProgressModel questUserProgressModel : questUserProgressModels) {
-                AbstractQuestRequirement requirement = questModel.getRequirements().stream()
-                        .filter(req -> req.getId().equals(questUserProgressModel.getRequirement().getId()))
-                        .findFirst()
-                        .orElse(null);
-
-                if (requirement != null) {
-                    progressDetails.append(requirementTranslation).append(" ")
-                            .append(requirement.getId())
-                            .append(": ")
-                            .append(questUserProgressModel.getProgress())
-                            .append("/")
-                            .append(requirement.getRequiredAmount())
-                            .append("\n");
-                    if (questUserProgressModel.getProgress() >= requirement.getRequiredAmount()) {
-                        completedRequirements++;
-                    }
-                }
-            }
-
-            this.languageService.sendTranslatedMessage(player, "quest_info");
-            this.languageService.sendTranslatedMessage(player, "quest_info_description",
-                    questModel.getDescription() != null ? questModel.getDescription() : this.languageService.getTranslatedMessage(player, "quest_info_no_description"));
-            this.languageService.sendTranslatedMessage(player, "quest_info_displayname", questModel.getDisplayName());
-            this.languageService.sendTranslatedMessage(player, "quest_info_duration", TimeUtils.toReadableString(questUserProgressModels.getFirst().getExpiration()));
-            this.languageService.sendTranslatedMessage(player, "quest_info_requirements", String.valueOf(completedRequirements), String.valueOf(questModel.getRequirements().size()));
-            this.languageService.sendTranslatedMessage(player, "quest_info_progress_details", progressDetails.toString());
-
+            questModel.sendProgressToUser(player, this.languageService, questUserProgressModels);
         }).exceptionally(e -> {
             PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress: " + e.getMessage(), e);
             return null;

@@ -6,10 +6,13 @@ import io.github.rysefoxx.command.CommandQuestReward;
 import io.github.rysefoxx.database.ConnectionManager;
 import io.github.rysefoxx.database.DatabaseTableManager;
 import io.github.rysefoxx.language.LanguageService;
+import io.github.rysefoxx.listener.ConnectionListener;
 import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.reward.QuestRewardService;
 import io.github.rysefoxx.stats.PlayerStatisticsService;
+import org.bukkit.Bukkit;
+import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.Objects;
@@ -37,6 +40,7 @@ public class PlayLegendQuest extends JavaPlugin {
 
         initializeManagers();
         initializeCommands();
+        initializeListeners();
     }
 
 
@@ -61,6 +65,11 @@ public class PlayLegendQuest extends JavaPlugin {
         Objects.requireNonNull(getCommand("questreward")).setExecutor(new CommandQuestReward(this.languageService, this.questRewardService));
         Objects.requireNonNull(getCommand("coins")).setExecutor(new CommandCoins(this.languageService, this.playerStatisticsService));
         Objects.requireNonNull(getCommand("quest")).setExecutor(new CommandQuest(this.questService, this.questRewardService, this.questUserProgressService, this.languageService));
+    }
+
+    private void initializeListeners() {
+        PluginManager pluginManager = Bukkit.getPluginManager();
+        pluginManager.registerEvents(new ConnectionListener(this.questUserProgressService, this.languageService), this);
     }
 
     public static Logger getLog() {

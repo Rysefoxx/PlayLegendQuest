@@ -1,11 +1,15 @@
 package io.github.rysefoxx.quest;
 
+import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.reward.QuestRewardModel;
+import io.github.rysefoxx.util.TimeUtils;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnegative;
@@ -62,5 +66,40 @@ public class QuestModel {
 
     public boolean hasReward(@Nonnegative long rewardId) {
         return this.rewards.stream().anyMatch(questRewardModel -> questRewardModel.getId().equals(rewardId));
+    }
+
+    public void sendProgressToUser(@NotNull Player player, @NotNull LanguageService languageService, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
+        int completedRequirements = 0;
+        StringBuilder progressDetails = new StringBuilder();
+
+        String requirementTranslation = languageService.getTranslatedMessage(player, "quest_info_requirement");
+
+        for (QuestUserProgressModel questUserProgressModel : questUserProgressModels) {
+            AbstractQuestRequirement requirement = getRequirements().stream()
+                    .filter(req -> req.getId().equals(questUserProgressModel.getRequirement().getId()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (requirement == null) continue;
+
+            progressDetails.append(requirementTranslation).append(" ")
+                    .append(requirement.getId())
+                    .append(": ")
+                    .append(questUserProgressModel.getProgress())
+                    .append("/")
+                    .append(requirement.getRequiredAmount())
+                    .append("\n");
+            if (questUserProgressModel.getProgress() >= requirement.getRequiredAmount()) {
+                completedRequirements++;
+            }
+        }
+
+        languageService.sendTranslatedMessage(player, "quest_info");
+        languageService.sendTranslatedMessage(player, "quest_info_description",
+                getDescription() != null ? getDescription() : languageService.getTranslatedMessage(player, "quest_info_no_description"));
+        languageService.sendTranslatedMessage(player, "quest_info_displayname", getDisplayName());
+        languageService.sendTranslatedMessage(player, "quest_info_duration", TimeUtils.toReadableString(questUserProgressModels.getFirst().getExpiration()));
+        languageService.sendTranslatedMessage(player, "quest_info_requirements", String.valueOf(completedRequirements), String.valueOf(getRequirements().size()));
+        languageService.sendTranslatedMessage(player, "quest_info_progress_details", progressDetails.toString());
     }
 }
