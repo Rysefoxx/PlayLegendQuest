@@ -73,7 +73,7 @@ public class QuestModel {
     }
 
     public void sendProgressToUser(@NotNull Player player, @NotNull LanguageService languageService, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
-        int completedRequirements = 0;
+        int completedRequirements = getCompletedRequirementsCount(questUserProgressModels);
         String requirementTranslation = languageService.getTranslatedMessage(player, "quest_info_requirement");
 
         languageService.sendTranslatedMessage(player, "quest_info");
@@ -83,6 +83,32 @@ public class QuestModel {
         languageService.sendTranslatedMessage(player, "quest_info_duration", TimeUtils.toReadableString(questUserProgressModels.getFirst().getExpiration()));
         languageService.sendTranslatedMessage(player, "quest_info_requirements", String.valueOf(completedRequirements), String.valueOf(getRequirements().size()));
 
+        for (String progressDetail : getProgressDetails(requirementTranslation, questUserProgressModels)) {
+            languageService.sendTranslatedMessage(player, "quest_info_progress_details", progressDetail);
+        }
+    }
+
+    public @Nonnegative int getCompletedRequirementsCount(@NotNull List<QuestUserProgressModel> questUserProgressModels) {
+        int completedRequirements = 0;
+
+        for (QuestUserProgressModel questUserProgressModel : questUserProgressModels) {
+            AbstractQuestRequirement requirement = getRequirements().stream()
+                    .filter(req -> req.getId().equals(questUserProgressModel.getRequirement().getId()))
+                    .findFirst()
+                    .orElse(null);
+
+            if (requirement == null) continue;
+            if (questUserProgressModel.getProgress() < requirement.getRequiredAmount()) continue;
+
+            completedRequirements++;
+        }
+
+        return completedRequirements;
+    }
+
+    private @NotNull List<String> getProgressDetails(@NotNull String requirementTranslation, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
+        List<String> progressDetails = new ArrayList<>();
+
         for (QuestUserProgressModel questUserProgressModel : questUserProgressModels) {
             AbstractQuestRequirement requirement = getRequirements().stream()
                     .filter(req -> req.getId().equals(questUserProgressModel.getRequirement().getId()))
@@ -91,12 +117,10 @@ public class QuestModel {
 
             if (requirement == null) continue;
 
-            String progressDetail = requirementTranslation + " " + requirement.getProgressText(questUserProgressModel);
-            if (questUserProgressModel.getProgress() >= requirement.getRequiredAmount()) {
-                completedRequirements++;
-            }
-
-            languageService.sendTranslatedMessage(player, "quest_info_progress_details", progressDetail);
+            progressDetails.add(requirementTranslation + " " + requirement.getProgressText(questUserProgressModel));
         }
+
+        return progressDetails;
     }
+
 }

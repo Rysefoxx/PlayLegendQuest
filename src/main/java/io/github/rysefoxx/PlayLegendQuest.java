@@ -7,6 +7,7 @@ import io.github.rysefoxx.database.ConnectionService;
 import io.github.rysefoxx.database.DatabaseTableService;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.listener.ConnectionListener;
+import io.github.rysefoxx.listener.SignChangeListener;
 import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.quest.QuestRequirementService;
 import io.github.rysefoxx.quest.QuestService;
@@ -79,5 +80,6 @@ public class PlayLegendQuest extends JavaPlugin {
     private void initializeListeners() {
         PluginManager pluginManager = Bukkit.getPluginManager();
         pluginManager.registerEvents(new ConnectionListener(this.questUserProgressService, this.scoreboardService, this.languageService), this);
+        pluginManager.registerEvents(new SignChangeListener(this.questUserProgressService, this.languageService), this);
     }
 }
