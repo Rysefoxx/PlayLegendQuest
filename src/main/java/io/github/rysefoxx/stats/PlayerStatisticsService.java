@@ -3,7 +3,7 @@ package io.github.rysefoxx.stats;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.rysefoxx.PlayLegendQuest;
-import io.github.rysefoxx.database.ConnectionManager;
+import io.github.rysefoxx.database.ConnectionService;
 import io.github.rysefoxx.database.IDatabaseOperation;
 import io.github.rysefoxx.enums.ResultType;
 import org.hibernate.Session;
@@ -28,7 +28,7 @@ public class PlayerStatisticsService implements IDatabaseOperation<PlayerStatist
     private final AsyncLoadingCache<UUID, PlayerStatisticsModel> cache;
 
     public PlayerStatisticsService() {
-        this.sessionFactory = ConnectionManager.getSessionFactory();
+        this.sessionFactory = ConnectionService.getSessionFactory();
         this.cache = Caffeine.newBuilder()
                 .expireAfterAccess(15, TimeUnit.MINUTES)
                 .buildAsync(this::getOrCreatePlayerStats);

@@ -18,20 +18,20 @@ import java.util.logging.Level;
  * @author Rysefoxx
  * @since 16.05.2024
  */
-public class DatabaseTableManager {
+public class DatabaseTableService {
 
     private final PlayLegendQuest plugin;
-    private final ConnectionManager connectionManager;
+    private final ConnectionService connectionService;
 
     /**
      * Create the tables for the database.
      *
      * @param plugin            The plugin instance.
-     * @param connectionManager The connection manager.
+     * @param connectionService The connection manager.
      */
-    public DatabaseTableManager(@NotNull PlayLegendQuest plugin, @NotNull ConnectionManager connectionManager) {
+    public DatabaseTableService(@NotNull PlayLegendQuest plugin, @NotNull ConnectionService connectionService) {
         this.plugin = plugin;
-        this.connectionManager = connectionManager;
+        this.connectionService = connectionService;
         createDefaultTables();
     }
 
@@ -56,7 +56,7 @@ public class DatabaseTableManager {
         for (String query : data) {
             if (query == null || query.isEmpty() || query.isBlank()) continue;
 
-            try (Connection connection = this.connectionManager.getConnection()) {
+            try (Connection connection = this.connectionService.getConnection()) {
                 if (connection == null) {
                     this.plugin.getLogger().severe("Failed to get connection from datasource!");
                     break;

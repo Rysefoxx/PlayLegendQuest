@@ -1,7 +1,7 @@
 package io.github.rysefoxx.quest;
 
 import io.github.rysefoxx.PlayLegendQuest;
-import io.github.rysefoxx.database.ConnectionManager;
+import io.github.rysefoxx.database.ConnectionService;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -19,7 +19,7 @@ public class QuestRequirementService {
     private final SessionFactory sessionFactory;
 
     public QuestRequirementService() {
-        this.sessionFactory = ConnectionManager.getSessionFactory();
+        this.sessionFactory = ConnectionService.getSessionFactory();
     }
 
     public CompletableFuture<@Nullable Long> save(AbstractQuestRequirement toSave) {

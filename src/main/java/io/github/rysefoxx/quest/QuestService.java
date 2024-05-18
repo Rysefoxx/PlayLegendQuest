@@ -3,7 +3,7 @@ package io.github.rysefoxx.quest;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.github.rysefoxx.PlayLegendQuest;
-import io.github.rysefoxx.database.ConnectionManager;
+import io.github.rysefoxx.database.ConnectionService;
 import io.github.rysefoxx.database.IDatabaseOperation;
 import io.github.rysefoxx.enums.QuestRequirementType;
 import io.github.rysefoxx.enums.ResultType;
@@ -33,7 +33,7 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
     private final AsyncLoadingCache<String, QuestModel> cache;
 
     public QuestService() {
-        this.sessionFactory = ConnectionManager.getSessionFactory();
+        this.sessionFactory = ConnectionService.getSessionFactory();
         this.cache = Caffeine.newBuilder()
                 .expireAfterAccess(15, TimeUnit.MINUTES)
                 .buildAsync(this::getQuestModel);

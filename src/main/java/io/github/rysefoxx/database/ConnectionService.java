@@ -32,7 +32,7 @@ import java.util.logging.Level;
  * @author Rysefoxx
  * @since 02.01.2024
  */
-public class ConnectionManager {
+public class ConnectionService {
 
     @Getter
     private static SessionFactory sessionFactory;
@@ -45,7 +45,7 @@ public class ConnectionManager {
      *
      * @param plugin The plugin instance.
      */
-    public ConnectionManager(@NotNull PlayLegendQuest plugin) {
+    public ConnectionService(@NotNull PlayLegendQuest plugin) {
         this.plugin = plugin;
         saveDefaultConfig();
         setupHikariCP();

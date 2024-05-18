@@ -3,8 +3,8 @@ package io.github.rysefoxx;
 import io.github.rysefoxx.command.CommandCoins;
 import io.github.rysefoxx.command.CommandQuest;
 import io.github.rysefoxx.command.CommandQuestReward;
-import io.github.rysefoxx.database.ConnectionManager;
-import io.github.rysefoxx.database.DatabaseTableManager;
+import io.github.rysefoxx.database.ConnectionService;
+import io.github.rysefoxx.database.DatabaseTableService;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.listener.ConnectionListener;
 import io.github.rysefoxx.progress.QuestUserProgressService;
@@ -28,7 +28,7 @@ public class PlayLegendQuest extends JavaPlugin {
 
     private static Logger logger;
 
-    private ConnectionManager connectionManager;
+    private ConnectionService connectionService;
     private LanguageService languageService;
 
     private QuestRewardService questRewardService;
@@ -53,12 +53,12 @@ public class PlayLegendQuest extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        this.connectionManager.closeConnection();
+        this.connectionService.closeConnection();
     }
 
     private void initializeManagers() {
-        this.connectionManager = new ConnectionManager(this);
-        new DatabaseTableManager(this, this.connectionManager);
+        this.connectionService = new ConnectionService(this);
+        new DatabaseTableService(this, this.connectionService);
 
         this.languageService = new LanguageService(this);
 
