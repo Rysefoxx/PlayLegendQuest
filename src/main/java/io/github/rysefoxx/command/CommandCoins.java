@@ -29,8 +29,7 @@ public class CommandCoins implements CommandExecutor {
                 return;
             }
 
-            String translation = this.languageService.getTranslatedMessage(player, "player_coins");
-            player.sendMessage(String.format(translation, playerStatisticsModel.getCoins()));
+            this.languageService.sendTranslatedMessage(player, "player_coins", String.valueOf(playerStatisticsModel.getCoins()));
         });
 
         return false;
