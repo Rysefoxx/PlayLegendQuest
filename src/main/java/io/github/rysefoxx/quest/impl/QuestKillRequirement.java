@@ -2,6 +2,7 @@ package io.github.rysefoxx.quest.impl;
 
 import io.github.rysefoxx.enums.QuestRequirementType;
 import io.github.rysefoxx.language.LanguageService;
+import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.quest.AbstractQuestRequirement;
 import jakarta.persistence.*;
 import lombok.NoArgsConstructor;
@@ -40,5 +41,10 @@ public class QuestKillRequirement extends AbstractQuestRequirement {
         languageService.sendTranslatedMessage(player, "quest_requirement_info_type", getQuestRequirementType().toString());
         languageService.sendTranslatedMessage(player, "quest_requirement_info_required_amount", String.valueOf(getRequiredAmount()));
         languageService.sendTranslatedMessage(player, "quest_requirement_info_entity_type", this.entityType.toString());
+    }
+
+    @Override
+    public @NotNull String getProgressText(@NotNull QuestUserProgressModel questUserProgressModel) {
+        return getId() + ": " + questUserProgressModel.getProgress() + "/" + getRequiredAmount() + " (" + getQuestRequirementType().toString() + " " + getRequiredAmount() + " " + this.entityType.toString() + ")";
     }
 }

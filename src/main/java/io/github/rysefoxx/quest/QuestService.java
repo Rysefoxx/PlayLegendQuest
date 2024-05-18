@@ -83,6 +83,26 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
         });
     }
 
+    public CompletableFuture<ResultType> removeRequirement(@NotNull QuestModel questModel, @NotNull AbstractQuestRequirement requirement) {
+        return CompletableFuture.supplyAsync(() -> {
+            Transaction transaction = null;
+            try (Session session = sessionFactory.openSession()) {
+                transaction = session.beginTransaction();
+
+                questModel.getRequirements().remove(requirement);
+                session.merge(questModel);
+                session.remove(session.contains(requirement) ? requirement : session.merge(requirement));
+
+                transaction.commit();
+                return ResultType.SUCCESS;
+            } catch (Exception e) {
+                if (transaction != null) transaction.rollback();
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to remove requirement from QuestModel: " + e.getMessage(), e);
+                return ResultType.ERROR;
+            }
+        });
+    }
+
     private CompletableFuture<QuestModel> getQuestModel(@NotNull String questName, @NotNull Executor executor) {
         return CompletableFuture.supplyAsync(() -> {
             try (Session session = sessionFactory.openSession()) {

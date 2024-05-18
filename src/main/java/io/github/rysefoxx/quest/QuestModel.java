@@ -45,11 +45,11 @@ public class QuestModel {
     @Column
     private String permission;
 
-    @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REMOVE}, fetch = FetchType.EAGER)
     @JoinTable(
-            name = "quest_reward_mapping",
-            joinColumns = @JoinColumn(name = "quest_name", referencedColumnName = "name"),
-            inverseJoinColumns = @JoinColumn(name = "reward_id", referencedColumnName = "id")
+            name = "quest_reward_relation",
+            joinColumns = @JoinColumn(name = "quest_name", referencedColumnName = "name", nullable = false),
+            inverseJoinColumns = @JoinColumn(name = "reward_id", referencedColumnName = "id", nullable = false)
     )
     private List<QuestRewardModel<?>> rewards = new ArrayList<>();
 
@@ -70,9 +70,14 @@ public class QuestModel {
 
     public void sendProgressToUser(@NotNull Player player, @NotNull LanguageService languageService, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
         int completedRequirements = 0;
-        StringBuilder progressDetails = new StringBuilder();
-
         String requirementTranslation = languageService.getTranslatedMessage(player, "quest_info_requirement");
+
+        languageService.sendTranslatedMessage(player, "quest_info");
+        languageService.sendTranslatedMessage(player, "quest_info_description",
+                getDescription() != null ? getDescription() : languageService.getTranslatedMessage(player, "quest_info_no_description"));
+        languageService.sendTranslatedMessage(player, "quest_info_displayname", getDisplayName());
+        languageService.sendTranslatedMessage(player, "quest_info_duration", TimeUtils.toReadableString(questUserProgressModels.getFirst().getExpiration()));
+        languageService.sendTranslatedMessage(player, "quest_info_requirements", String.valueOf(completedRequirements), String.valueOf(getRequirements().size()));
 
         for (QuestUserProgressModel questUserProgressModel : questUserProgressModels) {
             AbstractQuestRequirement requirement = getRequirements().stream()
@@ -82,24 +87,12 @@ public class QuestModel {
 
             if (requirement == null) continue;
 
-            progressDetails.append(requirementTranslation).append(" ")
-                    .append(requirement.getId())
-                    .append(": ")
-                    .append(questUserProgressModel.getProgress())
-                    .append("/")
-                    .append(requirement.getRequiredAmount())
-                    .append("\n");
+            String progressDetail = requirementTranslation + " " + requirement.getProgressText(questUserProgressModel);
             if (questUserProgressModel.getProgress() >= requirement.getRequiredAmount()) {
                 completedRequirements++;
             }
-        }
 
-        languageService.sendTranslatedMessage(player, "quest_info");
-        languageService.sendTranslatedMessage(player, "quest_info_description",
-                getDescription() != null ? getDescription() : languageService.getTranslatedMessage(player, "quest_info_no_description"));
-        languageService.sendTranslatedMessage(player, "quest_info_displayname", getDisplayName());
-        languageService.sendTranslatedMessage(player, "quest_info_duration", TimeUtils.toReadableString(questUserProgressModels.getFirst().getExpiration()));
-        languageService.sendTranslatedMessage(player, "quest_info_requirements", String.valueOf(completedRequirements), String.valueOf(getRequirements().size()));
-        languageService.sendTranslatedMessage(player, "quest_info_progress_details", progressDetails.toString());
+            languageService.sendTranslatedMessage(player, "quest_info_progress_details", progressDetail);
+        }
     }
 }

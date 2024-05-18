@@ -8,8 +8,10 @@ import io.github.rysefoxx.database.DatabaseTableManager;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.listener.ConnectionListener;
 import io.github.rysefoxx.progress.QuestUserProgressService;
+import io.github.rysefoxx.quest.QuestRequirementService;
 import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.reward.QuestRewardService;
+import io.github.rysefoxx.scoreboard.ScoreboardService;
 import io.github.rysefoxx.stats.PlayerStatisticsService;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
@@ -31,8 +33,14 @@ public class PlayLegendQuest extends JavaPlugin {
 
     private QuestRewardService questRewardService;
     private QuestService questService;
+    private ScoreboardService scoreboardService;
+    private QuestRequirementService questRequirementService;
     private QuestUserProgressService questUserProgressService;
     private PlayerStatisticsService playerStatisticsService;
+
+    public static Logger getLog() {
+        return logger;
+    }
 
     @Override
     public void onEnable() {
@@ -42,7 +50,6 @@ public class PlayLegendQuest extends JavaPlugin {
         initializeCommands();
         initializeListeners();
     }
-
 
     @Override
     public void onDisable() {
@@ -59,20 +66,18 @@ public class PlayLegendQuest extends JavaPlugin {
         this.questRewardService = new QuestRewardService();
         this.questService = new QuestService();
         this.questUserProgressService = new QuestUserProgressService();
+        this.questRequirementService = new QuestRequirementService();
+        this.scoreboardService = new ScoreboardService(this.questUserProgressService, this.languageService);
     }
 
     private void initializeCommands() {
         Objects.requireNonNull(getCommand("questreward")).setExecutor(new CommandQuestReward(this.languageService, this.questRewardService));
         Objects.requireNonNull(getCommand("coins")).setExecutor(new CommandCoins(this.languageService, this.playerStatisticsService));
-        Objects.requireNonNull(getCommand("quest")).setExecutor(new CommandQuest(this.questService, this.questRewardService, this.questUserProgressService, this.languageService));
+        Objects.requireNonNull(getCommand("quest")).setExecutor(new CommandQuest(this.questService, this.questRewardService, this.questUserProgressService, this.questRequirementService, this.scoreboardService, this.languageService));
     }
 
     private void initializeListeners() {
         PluginManager pluginManager = Bukkit.getPluginManager();
-        pluginManager.registerEvents(new ConnectionListener(this.questUserProgressService, this.languageService), this);
-    }
-
-    public static Logger getLog() {
-        return logger;
+        pluginManager.registerEvents(new ConnectionListener(this.questUserProgressService, this.scoreboardService, this.languageService), this);
     }
 }

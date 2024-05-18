@@ -34,11 +34,11 @@ import java.util.logging.Level;
  */
 public class ConnectionManager {
 
+    @Getter
+    private static SessionFactory sessionFactory;
     private final PlayLegendQuest plugin;
     @Getter
     private HikariDataSource dataSource;
-    @Getter
-    private static SessionFactory sessionFactory;
 
     /**
      * Loads the database.yml and sets up the HikariCP datasource.
@@ -145,7 +145,6 @@ public class ConnectionManager {
         settings.put("hibernate.connection.url", this.dataSource.getJdbcUrl());
         settings.put("hibernate.connection.username", this.dataSource.getUsername());
         settings.put("hibernate.connection.password", this.dataSource.getPassword());
-        settings.put("hibernate.dialect", "org.hibernate.dialect.MariaDBDialect");
         settings.put("hibernate.show_sql", "true");
         settings.put("hibernate.format_sql", "true");
         settings.put("hibernate.hbm2ddl.auto", "update");

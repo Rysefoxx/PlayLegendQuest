@@ -20,21 +20,17 @@ import java.util.List;
 @Table(name = "quest_reward")
 public class QuestRewardModel<T> {
 
+    @Transient
+    private final T reward;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false)
     private Long id;
-
     @Column(name = "quest_reward_type", nullable = false)
     @Enumerated(EnumType.STRING)
     private QuestRewardType questRewardType;
-
     @Column(name = "reward", nullable = false)
     private String rewardString;
-
-    @Transient
-    private final T reward;
-
     @ManyToMany(mappedBy = "rewards")
     private List<QuestModel> quests = new ArrayList<>();
 

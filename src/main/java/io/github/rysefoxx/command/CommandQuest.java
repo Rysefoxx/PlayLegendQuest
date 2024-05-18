@@ -4,11 +4,14 @@ import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.enums.QuestRequirementType;
 import io.github.rysefoxx.enums.ResultType;
 import io.github.rysefoxx.language.LanguageService;
+import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.quest.AbstractQuestRequirement;
 import io.github.rysefoxx.quest.QuestModel;
+import io.github.rysefoxx.quest.QuestRequirementService;
 import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.reward.QuestRewardService;
+import io.github.rysefoxx.scoreboard.ScoreboardService;
 import io.github.rysefoxx.util.Maths;
 import io.github.rysefoxx.util.TimeUtils;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +21,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
@@ -31,6 +37,8 @@ public class CommandQuest implements CommandExecutor {
     private final QuestService questService;
     private final QuestRewardService questRewardService;
     private final QuestUserProgressService questUserProgressService;
+    private final QuestRequirementService questRequirementService;
+    private final ScoreboardService scoreboardService;
     private final LanguageService languageService;
 
     @Override
@@ -49,6 +57,16 @@ public class CommandQuest implements CommandExecutor {
 
         if (args.length == 2 && args[0].equalsIgnoreCase("delete")) {
             delete(player, args);
+            return true;
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("accept")) {
+            accept(player, args);
+            return true;
+        }
+
+        if (args.length == 2 && args[0].equalsIgnoreCase("cancel")) {
+            cancel(player, args);
             return true;
         }
 
@@ -101,6 +119,10 @@ public class CommandQuest implements CommandExecutor {
         return true;
 
         /**
+         * Quest accept <Name>
+         * Quest cancel <Name>
+         *
+         *
          * Quest create <Name>
          * Quest delete <Name>
          * Quest update displayname <Name> <Displayname>
@@ -114,6 +136,96 @@ public class CommandQuest implements CommandExecutor {
          * Quest requirement remove <Name> <Id>
          * quest requirement info <Id>
          */
+    }
+
+    private void accept(@NotNull Player player, String @NotNull [] args) {
+        String name = args[1];
+        this.questService.findByName(name).thenAccept(questModel -> {
+            if (questModel == null) {
+                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
+                return;
+            }
+
+            this.questUserProgressService.hasQuest(player.getUniqueId()).thenAccept(hasQuest -> {
+                if (hasQuest) {
+                    this.languageService.sendTranslatedMessage(player, "quest_already_active");
+                    return;
+                }
+
+                this.questService.save(questModel).thenCompose(resultType -> {
+                    if (resultType != ResultType.SUCCESS) {
+                        this.languageService.sendTranslatedMessage(player, "quest_save_failed");
+                        return CompletableFuture.completedFuture(ResultType.ERROR);
+                    }
+
+                    List<CompletableFuture<ResultType>> futures = new ArrayList<>();
+                    for (AbstractQuestRequirement requirement : questModel.getRequirements()) {
+                        QuestUserProgressModel questUserProgressModel = new QuestUserProgressModel(player.getUniqueId(), LocalDateTime.now().plusSeconds(questModel.getDuration()), questModel, requirement);
+                        futures.add(this.questUserProgressService.save(questUserProgressModel));
+                    }
+
+                    return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).thenApply(v -> ResultType.SUCCESS);
+                }).thenAccept(resultType -> {
+                    this.scoreboardService.update(player);
+                    this.languageService.sendTranslatedMessage(player, "quest_accepted_" + resultType.toString().toLowerCase());
+                }).exceptionally(e -> {
+                    player.sendRichMessage("Error while accepting quest");
+                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error while accepting quest: " + e.getMessage(), e);
+                    return null;
+                });
+
+            }).exceptionally(e -> {
+                player.sendRichMessage("Error while searching for quest user progress");
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress: " + e.getMessage(), e);
+                return null;
+            });
+        }).exceptionally(e -> {
+            player.sendRichMessage("Error while searching for quest");
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
+            return null;
+        });
+    }
+
+    private void cancel(@NotNull Player player, String @NotNull [] args) {
+        String name = args[1];
+        this.questService.findByName(name).thenAccept(questModel -> {
+            if (questModel == null) {
+                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
+                return;
+            }
+
+            this.questUserProgressService.findByUuid(player.getUniqueId()).thenAccept(questUserProgressModels -> {
+                if (questUserProgressModels == null || questUserProgressModels.isEmpty()) {
+                    this.languageService.sendTranslatedMessage(player, "quest_no_active");
+                    return;
+                }
+
+                QuestUserProgressModel questUserProgressModel = questUserProgressModels.getFirst();
+                if (!questUserProgressModel.getQuest().getName().equals(name)) {
+                    this.languageService.sendTranslatedMessage(player, "quest_not_active");
+                    return;
+                }
+
+                questUserProgressModel.getQuest().getUserProgress().remove(questUserProgressModel);
+
+                this.questUserProgressService.delete(player.getUniqueId()).thenAccept(resultType -> {
+                    this.scoreboardService.update(player);
+                    this.languageService.sendTranslatedMessage(player, "quest_canceled_" + resultType.toString().toLowerCase());
+                }).exceptionally(e -> {
+                    player.sendRichMessage("Error while canceling quest");
+                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error while canceling quest: " + e.getMessage(), e);
+                    return null;
+                });
+            }).exceptionally(e -> {
+                player.sendRichMessage("Error while searching for quest user progress");
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress: " + e.getMessage(), e);
+                return null;
+            });
+        }).exceptionally(e -> {
+            player.sendRichMessage("Error while searching for quest");
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
+            return null;
+        });
     }
 
     private void requirementInfo(@NotNull Player player, String @NotNull [] args) {
@@ -162,8 +274,7 @@ public class CommandQuest implements CommandExecutor {
                 return CompletableFuture.completedFuture(null);
             }
 
-            questModel.getRequirements().remove(requirement);
-            return this.questService.save(questModel).thenAccept(resultType -> {
+            return this.questService.removeRequirement(questModel, requirement).thenAccept(resultType -> {
                 this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
             }).exceptionally(e -> {
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Error removing requirement from quest: " + e.getMessage(), e);
@@ -193,6 +304,7 @@ public class CommandQuest implements CommandExecutor {
                 this.languageService.sendTranslatedMessage(player, "quest_not_exist");
                 return CompletableFuture.completedFuture(null);
             }
+
             int requiredAmount = Integer.parseInt(args[4]);
             AbstractQuestRequirement requirement = this.questService.createRequirement(requirementType, requiredAmount, args);
 
@@ -202,10 +314,18 @@ public class CommandQuest implements CommandExecutor {
             }
 
             requirement.setQuest(questModel);
-            questModel.getRequirements().add(requirement);
 
-            return this.questService.save(questModel).thenAccept(resultType -> {
-                this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
+            return this.questRequirementService.save(requirement).thenCompose(requirementId -> {
+                if (requirementId == null) {
+                    this.languageService.sendTranslatedMessage(player, "quest_requirement_creation_failed");
+                    return CompletableFuture.completedFuture(null);
+                }
+
+                questModel.getRequirements().add(requirement);
+
+                return this.questService.save(questModel).thenAccept(resultType -> {
+                    this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
+                });
             });
         }).exceptionally(e -> {
             PlayLegendQuest.getLog().log(Level.SEVERE, "Error adding requirement to quest: " + e.getMessage(), e);
@@ -221,7 +341,6 @@ public class CommandQuest implements CommandExecutor {
             }
 
             QuestModel questModel = questUserProgressModels.getFirst().getQuest();
-
             questModel.sendProgressToUser(player, this.languageService, questUserProgressModels);
         }).exceptionally(e -> {
             PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress: " + e.getMessage(), e);
@@ -420,7 +539,7 @@ public class CommandQuest implements CommandExecutor {
                     return CompletableFuture.completedFuture(null);
                 }
 
-                questModel.getRewards().remove(questRewardModel);
+                questModel.getRewards().removeIf(reward -> reward.getId().equals(rewardId));
                 return this.questService.save(questModel).thenAccept(resultType -> {
                     this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
                 });
@@ -434,6 +553,8 @@ public class CommandQuest implements CommandExecutor {
     private void sendHelpMessage(@NotNull Player player) {
         player.sendRichMessage("Quest create <Name>");
         player.sendRichMessage("Quest delete <Name>");
+        player.sendRichMessage("Quest accept <Name>");
+        player.sendRichMessage("Quest cancel <Name>");
         player.sendRichMessage("Quest update displayname <Name> <Displayname>");
         player.sendRichMessage("Quest update description <Name> <Description>");
         player.sendRichMessage("Quest update duration <Name> <Duration>");

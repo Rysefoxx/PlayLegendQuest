@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS legend.quest_requirement
     FOREIGN KEY (quest_name) REFERENCES quest_model (name) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS legend.quest_reward_mapping
+CREATE TABLE IF NOT EXISTS legend.quest_reward_relation
 (
     quest_name VARCHAR(40) NOT NULL,
     reward_id  BIGINT      NOT NULL,

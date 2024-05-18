@@ -2,6 +2,7 @@ package io.github.rysefoxx.quest;
 
 import io.github.rysefoxx.enums.QuestRequirementType;
 import io.github.rysefoxx.language.LanguageService;
+import io.github.rysefoxx.progress.QuestUserProgressModel;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -42,4 +43,6 @@ public abstract class AbstractQuestRequirement {
     public abstract boolean isCompleted(Player player);
 
     public abstract void sendInfo(@NotNull Player player, @NotNull LanguageService languageService);
+
+    public abstract @NotNull String getProgressText(@NotNull QuestUserProgressModel questUserProgressModel);
 }

@@ -69,6 +69,7 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
                 if (questUserProgressModels.isEmpty()) return ResultType.NO_ROWS_AFFECTED;
 
                 for (QuestUserProgressModel questUserProgressModel : questUserProgressModels) {
+                    questUserProgressModel.getQuest().getUserProgress().remove(questUserProgressModel);
                     session.remove(questUserProgressModel);
                 }
                 transaction.commit();
@@ -97,5 +98,9 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
 
     public CompletableFuture<List<QuestUserProgressModel>> findByUuid(@NotNull UUID uuid) {
         return this.cache.get(uuid);
+    }
+
+    public CompletableFuture<Boolean> hasQuest(@NotNull UUID uuid) {
+        return findByUuid(uuid).thenApply(questUserProgressModels -> !questUserProgressModels.isEmpty());
     }
 }

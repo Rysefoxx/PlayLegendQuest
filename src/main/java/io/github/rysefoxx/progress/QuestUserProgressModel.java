@@ -6,9 +6,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.jetbrains.annotations.NotNull;
 
-import javax.annotation.Nonnegative;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -45,8 +43,10 @@ public class QuestUserProgressModel {
     @JoinColumn(name = "requirement_id")
     private AbstractQuestRequirement requirement;
 
-    public QuestUserProgressModel(@NotNull UUID uuid, @Nonnegative int progress) {
+    public QuestUserProgressModel(UUID uuid, LocalDateTime expiration, QuestModel quest, AbstractQuestRequirement requirement) {
         this.uuid = uuid;
-        this.progress = progress;
+        this.expiration = expiration;
+        this.quest = quest;
+        this.requirement = requirement;
     }
 }
