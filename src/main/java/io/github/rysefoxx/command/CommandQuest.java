@@ -73,6 +73,11 @@ public class CommandQuest implements CommandExecutor {
             return true;
         }
 
+        if (args.length == 4 && args[0].equalsIgnoreCase("update") && args[1].equalsIgnoreCase("permission")) {
+            updatePermission(player, args);
+            return true;
+        }
+
         if (args.length == 4 && args[0].equalsIgnoreCase("reward") && args[1].equalsIgnoreCase("add")) {
             addReward(player, args);
             return true;
@@ -102,17 +107,17 @@ public class CommandQuest implements CommandExecutor {
          * Quest update displayname <Name> <Displayname>
          * Quest update description <Name> <Description>
          * Quest update duration <Name> <Duration>
+         * Quest update permission <Name> <Permission>
          * Quest info
          * Quest reward add <Name> <RewardId>
          * Quest reward remove <Name> <RewardId>
-         *
          * Quest requirement add <Name> <Type> <RequiredAmount> <Material/EntityType>
          * Quest requirement remove <Name> <Id>
          * quest requirement info <Id>
          */
     }
 
-    private void requirementInfo(@NotNull Player player, @NotNull String[] args) {
+    private void requirementInfo(@NotNull Player player, String @NotNull [] args) {
         if (!Maths.isDataType(args[2], Long.class)) {
             this.languageService.sendTranslatedMessage(player, "invalid_quest_input");
             return;
@@ -133,7 +138,7 @@ public class CommandQuest implements CommandExecutor {
 
     }
 
-    private void removeRequirement(@NotNull Player player, @NotNull String[] args) {
+    private void removeRequirement(@NotNull Player player, String @NotNull [] args) {
         if (!Maths.isDataType(args[3], Long.class)) {
             this.languageService.sendTranslatedMessage(player, "invalid_quest_input");
             return;
@@ -171,7 +176,7 @@ public class CommandQuest implements CommandExecutor {
         });
     }
 
-    private void addRequirement(@NotNull Player player, @NotNull String[] args) {
+    private void addRequirement(@NotNull Player player, String @NotNull [] args) {
         if (!Maths.isDataType(args[4], Integer.class)) {
             this.languageService.sendTranslatedMessage(player, "invalid_quest_input");
             return;
@@ -256,7 +261,7 @@ public class CommandQuest implements CommandExecutor {
         });
     }
 
-    private void create(@NotNull Player player, @NotNull String[] args) {
+    private void create(@NotNull Player player, String @NotNull [] args) {
         String name = args[1];
         if (name.length() > 40) {
             this.languageService.sendTranslatedMessage(player, "quest_name_too_long");
@@ -287,7 +292,7 @@ public class CommandQuest implements CommandExecutor {
         });
     }
 
-    private void delete(@NotNull Player player, @NotNull String[] args) {
+    private void delete(@NotNull Player player, String @NotNull [] args) {
         String name = args[1];
         this.questService.delete(name).thenAccept(resultType -> {
             this.languageService.sendTranslatedMessage(player, "quest_deleted_" + resultType.toString().toLowerCase());
@@ -297,7 +302,27 @@ public class CommandQuest implements CommandExecutor {
         });
     }
 
-    private void updateDisplayName(@NotNull Player player, @NotNull String[] args) {
+    private void updatePermission(@NotNull Player player, String @NotNull [] args) {
+        String name = args[2];
+        String permission = args[3];
+
+        this.questService.findByName(name).thenAccept(questModel -> {
+            if (questModel == null) {
+                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
+                return;
+            }
+
+            questModel.setPermission(permission);
+            this.questService.save(questModel).thenAccept(resultType -> {
+                this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
+            });
+        }).exceptionally(e -> {
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Error updating permission for quest: " + e.getMessage(), e);
+            return null;
+        });
+    }
+
+    private void updateDisplayName(@NotNull Player player, String @NotNull [] args) {
         String name = args[2];
         String displayName = args[3];
 
@@ -317,7 +342,7 @@ public class CommandQuest implements CommandExecutor {
         });
     }
 
-    private void updateDescription(@NotNull Player player, @NotNull String[] args) {
+    private void updateDescription(@NotNull Player player, String @NotNull [] args) {
         String name = args[2];
         String description = args[3];
 
@@ -337,7 +362,7 @@ public class CommandQuest implements CommandExecutor {
         });
     }
 
-    private void updateDuration(@NotNull Player player, @NotNull String[] args) {
+    private void updateDuration(@NotNull Player player, String @NotNull [] args) {
         String durationString = args[3];
         long seconds = TimeUtils.parseDurationToSeconds(durationString);
 
@@ -364,7 +389,7 @@ public class CommandQuest implements CommandExecutor {
 
     }
 
-    private void addReward(@NotNull Player player, @NotNull String[] args) {
+    private void addReward(@NotNull Player player, String @NotNull [] args) {
         if (!Maths.isDataType(args[3], Long.class)) {
             this.languageService.sendTranslatedMessage(player, "invalid_quest_input");
             return;
@@ -401,7 +426,7 @@ public class CommandQuest implements CommandExecutor {
         });
     }
 
-    private void removeReward(@NotNull Player player, @NotNull String[] args) {
+    private void removeReward(@NotNull Player player, String @NotNull [] args) {
         if (!Maths.isDataType(args[3], Long.class)) {
             this.languageService.sendTranslatedMessage(player, "invalid_quest_input");
             return;
@@ -444,6 +469,7 @@ public class CommandQuest implements CommandExecutor {
         player.sendRichMessage("Quest update displayname <Name> <Displayname>");
         player.sendRichMessage("Quest update description <Name> <Description>");
         player.sendRichMessage("Quest update duration <Name> <Duration>");
+        player.sendRichMessage("Quest update permission <Name> <Permission>");
         player.sendRichMessage("Quest reward add <Name> <RewardId>");
         player.sendRichMessage("Quest reward remove <Name> <RewardId>");
         player.sendRichMessage("Quest reward remove <Name> <RewardId>");

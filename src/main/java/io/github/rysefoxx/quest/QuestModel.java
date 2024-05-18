@@ -38,6 +38,9 @@ public class QuestModel {
     @Column
     private long duration;
 
+    @Column
+    private String permission;
+
     @ManyToMany(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     @JoinTable(
             name = "quest_reward_mapping",
