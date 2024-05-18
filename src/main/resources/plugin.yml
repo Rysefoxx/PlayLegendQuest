@@ -1,0 +1,13 @@
+name: PlayLegendQuest
+authors: [ Rysefoxx ]
+version: '${project.version}'
+api-version: 1.20
+main: io.github.rysefoxx.PlayLegendQuest
+commands:
+  questreward:
+  quest:
+  coins:
+    aliases:
+      - questcoins
+      - questcoin
+      - coin
