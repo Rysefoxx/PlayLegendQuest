@@ -14,6 +14,13 @@ public enum ScoreboardPredefinedValue {
      * Fills the placeholder in the scoreboard with the quest description.
      */
     QUEST_DESCRIPTION,
-    QUEST_PROGRESS
+    /**
+     * Fills the placeholder in the scoreboard with the quest progress.
+     */
+    QUEST_PROGRESS,
+    /**
+     * Fills the placeholder in the scoreboard with the quest remaining time.
+     */
+    QUEST_REMAINING_TIME,
 
 }

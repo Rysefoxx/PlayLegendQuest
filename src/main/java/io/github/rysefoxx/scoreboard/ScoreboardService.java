@@ -1,17 +1,21 @@
 package io.github.rysefoxx.scoreboard;
 
 import io.github.rysefoxx.language.LanguageService;
+import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.scoreboard.enums.ScoreboardPredefinedValue;
 import io.github.rysefoxx.scoreboard.impl.QuestScoreboard;
+import io.github.rysefoxx.util.TimeUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.*;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -119,43 +123,52 @@ public class ScoreboardService {
         }
 
         this.questUserProgressService.findByUuid(player.getUniqueId()).thenAccept(questUserProgressModels -> {
-            QuestModel questModel = !questUserProgressModels.isEmpty() ? questUserProgressModels.getFirst().getQuest() : null;
-            for (Map.Entry<String, ScoreboardEntry> entry : abstractScoreboard.getLines(player, this.languageService).entrySet()) {
-                ScoreboardEntry scoreboardEntry = entry.getValue();
+            QuestModel questModel = questUserProgressModels.isEmpty() ? null : questUserProgressModels.getFirst().getQuest();
+            Map<String, ScoreboardEntry> lines = abstractScoreboard.getLines(player, this.languageService);
 
+            for (Map.Entry<String, ScoreboardEntry> entry : lines.entrySet()) {
+                ScoreboardEntry scoreboardEntry = entry.getValue();
                 Team team = scoreboard.getTeam(entry.getKey());
+
                 if (team == null || scoreboardEntry.predefinedValue() == null) {
                     continue;
                 }
 
-                if (scoreboardEntry.predefinedValue() == ScoreboardPredefinedValue.QUEST_NAME) {
-                    String questName = questModel != null
-                            ? questModel.getDisplayName()
-                            : this.languageService.getTranslatedMessage(player, "quest_no_active");
-                    Component progress = Component.text(questName);
-                    team.suffix(progress);
-                    continue;
-                }
-
-                if (scoreboardEntry.predefinedValue() == ScoreboardPredefinedValue.QUEST_DESCRIPTION) {
-                    String questDescription = (questModel != null && questModel.getDescription() != null)
-                            ? questModel.getDescription()
-                            : this.languageService.getTranslatedMessage(player, "quest_info_no_description");
-                    Component description = Component.text(questDescription);
-                    team.suffix(description);
-                    continue;
-                }
-
-                if (scoreboardEntry.predefinedValue() == ScoreboardPredefinedValue.QUEST_PROGRESS) {
-                    String questProgress = questModel != null
-                            ? questModel.getCompletedRequirementsCount(questUserProgressModels) + "/" + questModel.getRequirements().size()
-                            : this.languageService.getTranslatedMessage(player, "quest_no_active");
-                    Component progress = Component.text(questProgress);
-                    team.suffix(progress);
-                }
+                Component component = getComponentForPredefinedValue(scoreboardEntry.predefinedValue(), player, questModel, questUserProgressModels);
+                team.suffix(component);
             }
         });
     }
+
+    private @NotNull Component getComponentForPredefinedValue(@NotNull ScoreboardPredefinedValue predefinedValue, @NotNull Player player, @Nullable QuestModel questModel, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
+        return switch (predefinedValue) {
+            case QUEST_NAME -> {
+                String questName = questModel != null
+                        ? questModel.getDisplayName()
+                        : this.languageService.getTranslatedMessage(player, "quest_no_active");
+                yield Component.text(questName);
+            }
+            case QUEST_DESCRIPTION -> {
+                String questDescription = (questModel != null && questModel.getDescription() != null)
+                        ? questModel.getDescription()
+                        : this.languageService.getTranslatedMessage(player, "quest_info_no_description");
+                yield Component.text(questDescription);
+            }
+            case QUEST_PROGRESS -> {
+                String questProgress = questModel != null
+                        ? questModel.getCompletedRequirementsCount(questUserProgressModels) + "/" + questModel.getRequirements().size()
+                        : this.languageService.getTranslatedMessage(player, "quest_no_active");
+                yield Component.text(questProgress);
+            }
+            case QUEST_REMAINING_TIME -> {
+                String questTime = questModel != null
+                        ? TimeUtils.toReadableString(questUserProgressModels.getFirst().getExpiration())
+                        : this.languageService.getTranslatedMessage(player, "quest_no_active");
+                yield Component.text(questTime);
+            }
+        };
+    }
+
 
     /**
      * Checks if a player has a scoreboard.
