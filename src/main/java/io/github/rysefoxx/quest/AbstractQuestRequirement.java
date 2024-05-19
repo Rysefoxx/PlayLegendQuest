@@ -17,8 +17,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import javax.annotation.Nonnegative;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
@@ -77,60 +79,86 @@ public abstract class AbstractQuestRequirement implements Listener {
     }
 
     protected void updateProgress(@NotNull Player player, @Nonnegative int progressIncrement) {
-        getQuestUserProgressService().findByUuid(player.getUniqueId()).thenAccept(questUserProgressModels -> {
-            if (questUserProgressModels == null || questUserProgressModels.isEmpty()) return;
+        getQuestUserProgressService().findByUuid(player.getUniqueId())
+                .thenCompose(questUserProgressModels -> handleQuestUserProgressModels(player, questUserProgressModels, progressIncrement))
+                .exceptionally(throwable -> handleError(player, throwable));
+    }
 
-            QuestModel questModel = questUserProgressModels.getFirst().getQuest();
-            if (!questModel.hasRequirement(getId())) return;
+    private @NotNull CompletableFuture<@Nullable Void> handleQuestUserProgressModels(@NotNull Player player, @Nullable List<QuestUserProgressModel> questUserProgressModels, @Nonnegative int progressIncrement) {
+        if (questUserProgressModels == null || questUserProgressModels.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
 
-            QuestUserProgressModel questUserProgressModel = questUserProgressModels.stream()
-                    .filter(model -> model.getRequirement().getId().equals(getId()))
-                    .findFirst()
-                    .orElse(null);
-            if (questUserProgressModel == null || questUserProgressModel.isCompleted()) return;
+        QuestModel questModel = questUserProgressModels.getFirst().getQuest();
+        if (!questModel.hasRequirement(getId())) {
+            return CompletableFuture.completedFuture(null);
+        }
 
-            questUserProgressModel.setProgress(Math.min(questUserProgressModel.getProgress() + progressIncrement, getRequiredAmount()));
-            if (questUserProgressModel.getProgress() >= getRequiredAmount()) questUserProgressModel.setCompleted(true);
+        QuestUserProgressModel questUserProgressModel = questUserProgressModels.stream()
+                .filter(model -> model.getRequirement().getId().equals(getId()))
+                .findFirst()
+                .orElse(null);
 
-            getLanguageService().sendTranslatedMessage(player, "quest_progress", String.valueOf(questUserProgressModel.getProgress()), String.valueOf(getRequiredAmount()));
+        if (questUserProgressModel == null || questUserProgressModel.isCompleted()) {
+            return CompletableFuture.completedFuture(null);
+        }
 
-            getQuestUserProgressService().save(questUserProgressModel).thenAccept(resultType -> {
-                if (resultType != ResultType.SUCCESS) {
-                    player.sendRichMessage("Error while saving quest progress.");
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error while saving quest progress for player " + player.getName() + "! | " + resultType);
-                    return;
-                }
+        questUserProgressModel.setProgress(Math.min(questUserProgressModel.getProgress() + progressIncrement, getRequiredAmount()));
+        if (questUserProgressModel.isDone()) {
+            questUserProgressModel.setCompleted(true);
+        }
 
-                if (questUserProgressModel.getProgress() < getRequiredAmount()) return;
-                getLanguageService().sendTranslatedMessage(player, "quest_requirement_done");
-                getScoreboardService().update(player);
+        getLanguageService().sendTranslatedMessage(player, "quest_progress", String.valueOf(questUserProgressModel.getProgress()), String.valueOf(getRequiredAmount()));
 
-                if (!questModel.isCompleted(questUserProgressModels)) return;
-                getLanguageService().sendTranslatedMessage(player, "quest_done");
+        return getQuestUserProgressService().save(questUserProgressModel)
+                .thenCompose(resultType -> handleSaveResult(player, resultType, questUserProgressModel, questModel, questUserProgressModels));
+    }
 
-                getQuestRewardService().rewardPlayer(player, questModel);
+    private @NotNull CompletableFuture<@Nullable Void> handleSaveResult(@NotNull Player player, @NotNull ResultType resultType, @NotNull QuestUserProgressModel questUserProgressModel, @NotNull QuestModel questModel, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
+        if (resultType != ResultType.SUCCESS) {
+            handleSaveError(player, "Error while saving quest progress.", resultType);
+            return CompletableFuture.completedFuture(null);
+        }
 
-                questModel.getUserQuests().removeIf(questUserModel -> questUserModel.getUuid().equals(player.getUniqueId()));
+        if (questUserProgressModel.getProgress() < getRequiredAmount()) {
+            return CompletableFuture.completedFuture(null);
+        }
 
-                this.questUserService.deleteByUuid(player.getUniqueId()).thenCompose(resultType1 -> {
-                    if (resultType1 != ResultType.SUCCESS) {
-                        player.sendRichMessage("Error while deleting quest progress.");
-                        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while deleting user quest model for player " + player.getName() + "! | " + resultType1);
+        getLanguageService().sendTranslatedMessage(player, "quest_requirement_done");
+        getScoreboardService().update(player);
+
+        if (!questModel.isCompleted(questUserProgressModels)) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        getLanguageService().sendTranslatedMessage(player, "quest_done");
+        getQuestRewardService().rewardPlayer(player, questModel);
+        questModel.getUserQuests().removeIf(questUserModel -> questUserModel.getUuid().equals(player.getUniqueId()));
+
+        return deleteQuestProgress(player, questModel);
+    }
+
+    private @NotNull CompletableFuture<@Nullable Void> deleteQuestProgress(@NotNull Player player, @NotNull QuestModel questModel) {
+        return questUserService.deleteByUuid(player.getUniqueId())
+                .thenCompose(resultType -> {
+                    if (resultType != ResultType.SUCCESS) {
+                        handleSaveError(player, "Error while deleting quest progress.", resultType);
                         return CompletableFuture.completedFuture(null);
                     }
 
-                    return this.questService.getCache().synchronous().refresh(questModel.getName());
+                    return questService.getCache().synchronous().refresh(questModel.getName()).thenApply(refreshedQuestModel -> null);
                 });
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while saving quest progress.");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while saving quest progress: " + e.getMessage(), e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            player.sendRichMessage("Error while searching for quest progress.");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest progress: " + e.getMessage(), e);
-            return null;
-        });
+    }
+
+    private @Nullable Void handleError(@NotNull Player player, @NotNull Throwable throwable) {
+        player.sendRichMessage("Error while searching for quest progress.");
+        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest progress." + ": " + throwable.getMessage(), throwable);
+        return null;
+    }
+
+    private void handleSaveError(@NotNull Player player, @NotNull String message, @NotNull ResultType resultType) {
+        player.sendRichMessage(message);
+        PlayLegendQuest.getLog().log(Level.SEVERE, message + " for player " + player.getName() + "! | " + resultType);
     }
 
 }

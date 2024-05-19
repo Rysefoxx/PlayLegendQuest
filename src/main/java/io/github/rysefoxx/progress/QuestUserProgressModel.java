@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import javax.annotation.Nonnegative;
 import java.util.UUID;
 
 /**
@@ -46,5 +47,9 @@ public class QuestUserProgressModel {
         this.uuid = uuid;
         this.quest = quest;
         this.requirement = requirement;
+    }
+
+    public boolean isDone() {
+        return this.progress >= this.requirement.getRequiredAmount();
     }
 }
