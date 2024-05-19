@@ -3,6 +3,8 @@ package io.github.rysefoxx;
 import io.github.rysefoxx.command.CommandCoins;
 import io.github.rysefoxx.command.CommandQuest;
 import io.github.rysefoxx.command.CommandQuestReward;
+import io.github.rysefoxx.command.tabcomplete.TabCompleteQuest;
+import io.github.rysefoxx.command.tabcomplete.TabCompleteQuestReward;
 import io.github.rysefoxx.database.ConnectionService;
 import io.github.rysefoxx.database.DatabaseTableService;
 import io.github.rysefoxx.language.LanguageService;
@@ -53,6 +55,7 @@ public class PlayLegendQuest extends JavaPlugin {
 
         initializeManagers();
         initializeCommands();
+        initializeTabCompleter();
         initializeListeners();
     }
 
@@ -81,6 +84,11 @@ public class PlayLegendQuest extends JavaPlugin {
         Objects.requireNonNull(getCommand("questreward")).setExecutor(new CommandQuestReward(this.languageService, this.questRewardService));
         Objects.requireNonNull(getCommand("coins")).setExecutor(new CommandCoins(this.languageService, this.playerStatisticsService));
         Objects.requireNonNull(getCommand("quest")).setExecutor(new CommandQuest(this, this.questService, this.questRewardService, this.questUserProgressService, this.questRequirementService, this.questUserService, this.scoreboardService, this.languageService));
+    }
+
+    private void initializeTabCompleter() {
+        Objects.requireNonNull(getCommand("quest")).setTabCompleter(new TabCompleteQuest());
+        Objects.requireNonNull(getCommand("questreward")).setTabCompleter(new TabCompleteQuestReward());
     }
 
     private void initializeListeners() {

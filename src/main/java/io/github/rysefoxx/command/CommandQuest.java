@@ -12,16 +12,19 @@ import io.github.rysefoxx.user.QuestUserService;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * @author Rysefoxx
  * @since 16.05.2024
  */
-public class CommandQuest implements CommandExecutor {
+public class CommandQuest implements CommandExecutor, TabCompleter {
 
     private final HashMap<String, QuestOperation> operations = new HashMap<>();
 
@@ -88,5 +91,11 @@ public class CommandQuest implements CommandExecutor {
                 "Quest requirement remove <Name> <Id>",
                 "Quest requirement info <Id>",
                 "Quest info");
+    }
+
+    @Override
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
+        //We return an empty list, as no player names are to be suggested.
+        return List.of();
     }
 }
