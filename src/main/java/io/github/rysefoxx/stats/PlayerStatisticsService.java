@@ -47,9 +47,12 @@ public class PlayerStatisticsService implements IDatabaseOperation<PlayerStatist
                 }
                 transaction.commit();
 
-                this.cache.put(toSave.getUuid(), CompletableFuture.completedFuture(toSave));
-                PlayLegendQuest.getLog().info("PlayerStatisticsModel successfully saved.");
-                return ResultType.SUCCESS;
+                return this.cache.synchronous().refresh(toSave.getUuid())
+                        .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
+                        .exceptionally(e -> {
+                            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh PlayerStatisticsModel cache: " + e.getMessage(), e);
+                            return ResultType.ERROR;
+                        }).get();
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to save PlayerStatisticsModel: " + e.getMessage(), e);
@@ -70,8 +73,6 @@ public class PlayerStatisticsService implements IDatabaseOperation<PlayerStatist
                 session.remove(playerStats);
                 transaction.commit();
                 this.cache.synchronous().invalidate(toDelete);
-
-                PlayLegendQuest.getLog().info("PlayerStatisticsModel successfully deleted.");
                 return ResultType.SUCCESS;
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();

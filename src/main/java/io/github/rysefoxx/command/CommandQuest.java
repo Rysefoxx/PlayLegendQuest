@@ -1,668 +1,85 @@
 package io.github.rysefoxx.command;
 
 import io.github.rysefoxx.PlayLegendQuest;
-import io.github.rysefoxx.enums.QuestRequirementType;
-import io.github.rysefoxx.enums.ResultType;
+import io.github.rysefoxx.command.operation.*;
 import io.github.rysefoxx.language.LanguageService;
-import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.progress.QuestUserProgressService;
-import io.github.rysefoxx.quest.AbstractQuestRequirement;
-import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.quest.QuestRequirementService;
 import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.reward.QuestRewardService;
 import io.github.rysefoxx.scoreboard.ScoreboardService;
-import io.github.rysefoxx.user.QuestUserModel;
 import io.github.rysefoxx.user.QuestUserService;
-import io.github.rysefoxx.util.Maths;
-import io.github.rysefoxx.util.StringUtils;
-import io.github.rysefoxx.util.TimeUtils;
-import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
+import java.util.HashMap;
 
 /**
  * @author Rysefoxx
  * @since 16.05.2024
  */
-@RequiredArgsConstructor
 public class CommandQuest implements CommandExecutor {
 
-    private final PlayLegendQuest plugin;
-    private final QuestService questService;
-    private final QuestRewardService questRewardService;
-    private final QuestUserProgressService questUserProgressService;
-    private final QuestRequirementService questRequirementService;
-    private final QuestUserService questUserService;
-    private final ScoreboardService scoreboardService;
-    private final LanguageService languageService;
+    private final HashMap<String, QuestOperation> operations = new HashMap<>();
+
+    public CommandQuest(@NotNull PlayLegendQuest plugin, @NotNull QuestService questService, @NotNull QuestRewardService questRewardService, @NotNull QuestUserProgressService questUserProgressService, @NotNull QuestRequirementService questRequirementService, @NotNull QuestUserService questUserService, @NotNull ScoreboardService scoreboardService, @NotNull LanguageService languageService) {
+        this.operations.put("accept", new QuestAcceptOperation(questService, languageService, questUserProgressService, questUserService, scoreboardService));
+        this.operations.put("cancel", new QuestCancelOperation(questService, languageService, questUserProgressService, scoreboardService));
+        this.operations.put("create", new QuestCreateOperation(questService, languageService));
+        this.operations.put("delete", new QuestDeleteOperation(questService, languageService));
+        this.operations.put("info", new QuestInfoOperation(questUserProgressService, languageService));
+        this.operations.put("update_displayname", new QuestDisplayNameOperation(questService, languageService));
+        this.operations.put("update_description", new QuestDescriptionOperation(questService, languageService, scoreboardService));
+        this.operations.put("update_duration", new QuestDurationOperation(questService, languageService));
+        this.operations.put("update_permission", new QuestPermissionOperation(questService, languageService));
+
+        QuestRewardOperation questRewardOperation = new QuestRewardOperation(questService, questRewardService, languageService);
+        this.operations.put("reward_add", questRewardOperation);
+        this.operations.put("reward_remove", questRewardOperation);
+
+        QuestRequirementOperation questRequirementOperation = new QuestRequirementOperation(plugin, questService, questRequirementService, languageService);
+        this.operations.put("requirement_add", questRequirementOperation);
+        this.operations.put("requirement_remove", questRequirementOperation);
+        this.operations.put("requirement_info", questRequirementOperation);
+    }
 
     @Override
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(commandSender instanceof Player player)) return false;
 
-        if (args.length == 1 && args[0].equalsIgnoreCase("info")) {
-            questInfo(player);
-            return true;
-        }
-
-        if (args.length == 2 && args[0].equalsIgnoreCase("create")) {
-            create(player, args);
-            return true;
-        }
-
-        if (args.length == 2 && args[0].equalsIgnoreCase("delete")) {
-            delete(player, args);
-            return true;
-        }
-
-        if (args.length == 2 && args[0].equalsIgnoreCase("accept")) {
-            accept(player, args);
-            return true;
-        }
-
-        if (args.length == 2 && args[0].equalsIgnoreCase("cancel")) {
-            cancel(player, args);
-            return true;
-        }
-
-        if (args.length == 3 && args[0].equalsIgnoreCase("requirement") && args[1].equalsIgnoreCase("info")) {
-            requirementInfo(player, args);
-            return true;
-        }
-
-        if (args.length == 4 && args[0].equalsIgnoreCase("update") && args[1].equalsIgnoreCase("displayname")) {
-            updateDisplayName(player, args);
-            return true;
-        }
-
-        if (args.length >= 4 && args[0].equalsIgnoreCase("update") && args[1].equalsIgnoreCase("description")) {
-            updateDescription(player, args);
-            return true;
-        }
-
-        if (args.length == 4 && args[0].equalsIgnoreCase("update") && args[1].equalsIgnoreCase("duration")) {
-            updateDuration(player, args);
-            return true;
-        }
-
-        if (args.length == 4 && args[0].equalsIgnoreCase("update") && args[1].equalsIgnoreCase("permission")) {
-            updatePermission(player, args);
-            return true;
-        }
-
-        if (args.length == 4 && args[0].equalsIgnoreCase("reward") && args[1].equalsIgnoreCase("add")) {
-            addReward(player, args);
-            return true;
-        }
-
-        if (args.length == 4 && args[0].equalsIgnoreCase("reward") && args[1].equalsIgnoreCase("remove")) {
-            removeReward(player, args);
-            return true;
-        }
-
-        if (args.length == 4 && args[0].equalsIgnoreCase("requirement") && args[1].equalsIgnoreCase("remove")) {
-            removeRequirement(player, args);
-            return true;
-        }
-
-        if (args.length == 6 && args[0].equalsIgnoreCase("requirement") && args[1].equalsIgnoreCase("add")) {
-            addRequirement(player, args);
-            return true;
-        }
-
-        sendHelpMessage(player);
-        return true;
-
-        /**
-         * Quest accept <Name>
-         * Quest cancel <Name>
-         *
-         *
-         * Quest create <Name>
-         * Quest delete <Name>
-         * Quest update displayname <Name> <Displayname>
-         * Quest update description <Name> <Description>
-         * Quest update duration <Name> <Duration>
-         * Quest update permission <Name> <Permission>
-         * Quest info
-         * Quest reward add <Name> <RewardId>
-         * Quest reward remove <Name> <RewardId>
-         * Quest requirement add <Name> <Type> <RequiredAmount> <Material/EntityType>
-         * Quest requirement remove <Name> <Id>
-         * quest requirement info <Id>
-         */
-    }
-
-    private void accept(@NotNull Player player, String @NotNull [] args) {
-        String name = args[1];
-        this.questService.findByName(name).thenAccept(questModel -> {
-            if (questModel == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
-                return;
-            }
-
-            if (!questModel.isConfigured()) {
-                this.languageService.sendTranslatedMessage(player, "quest_not_configured");
-                return;
-            }
-
-            if (questModel.hasPermission() && !player.hasPermission(questModel.getPermission())) {
-                this.languageService.sendTranslatedMessage(player, "quest_no_permission");
-                return;
-            }
-
-            this.questUserProgressService.hasQuest(player.getUniqueId()).thenAccept(hasQuest -> {
-                if (hasQuest) {
-                    this.languageService.sendTranslatedMessage(player, "quest_already_active");
-                    return;
+        try {
+            QuestOperation questOperation = this.operations.get(args[0].toLowerCase());
+            if (questOperation == null) {
+                questOperation = this.operations.get(args[0].toLowerCase() + "_" + args[1].toLowerCase());
+                if (questOperation == null) {
+                    sendHelpMessage(player);
+                    return false;
                 }
-
-                this.questUserProgressService.isQuestCompleted(player.getUniqueId(), name).thenAccept(isCompleted -> {
-                    if (isCompleted) {
-                        this.languageService.sendTranslatedMessage(player, "quest_already_completed");
-                        return;
-                    }
-
-                    QuestUserModel questUserModel = new QuestUserModel(
-                            player.getUniqueId(),
-                            LocalDateTime.now().plusSeconds(questModel.getDuration()),
-                            questModel
-                    );
-
-                    this.questUserService.save(questUserModel).thenCompose(userResultType -> {
-                        if (userResultType != ResultType.SUCCESS) {
-                            this.languageService.sendTranslatedMessage(player, "quest_save_failed");
-                            return CompletableFuture.completedFuture(ResultType.ERROR);
-                        }
-
-                        return this.questService.save(questModel).thenCompose(questResultType -> {
-                            List<CompletableFuture<ResultType>> futures = new ArrayList<>();
-                            for (AbstractQuestRequirement requirement : questModel.getRequirements()) {
-                                QuestUserProgressModel questUserProgressModel = new QuestUserProgressModel(player.getUniqueId(), questModel, requirement);
-                                futures.add(this.questUserProgressService.save(questUserProgressModel));
-                            }
-
-                            return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                                    .thenApply(v -> {
-                                        this.scoreboardService.update(player);
-                                        this.languageService.sendTranslatedMessage(player, "quest_accepted_" + questResultType.toString().toLowerCase());
-                                        return ResultType.SUCCESS;
-                                    })
-                                    .exceptionally(e -> {
-                                        player.sendRichMessage("Error while accepting quest");
-                                        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while accepting quest: " + e.getMessage(), e);
-                                        return ResultType.ERROR;
-                                    });
-                        });
-                    }).exceptionally(e -> {
-                        player.sendRichMessage("Error while accepting quest");
-                        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while accepting quest: " + e.getMessage(), e);
-                        return null;
-                    });
-
-                }).exceptionally(e -> {
-                    player.sendRichMessage("Error while checking if quest is completed");
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error while checking if quest is completed: " + e.getMessage(), e);
-                    return null;
-                });
-
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while searching for quest user progress");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress: " + e.getMessage(), e);
-                return null;
-            });
-
-        }).exceptionally(e -> {
-            player.sendRichMessage("Error while searching for quest");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
-            return null;
-        });
-    }
-
-    private void cancel(@NotNull Player player, String @NotNull [] args) {
-        String name = args[1];
-        this.questService.findByName(name).thenAccept(questModel -> {
-            if (questModel == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
-                return;
             }
-
-            this.questUserProgressService.findByUuid(player.getUniqueId()).thenAccept(questUserProgressModels -> {
-                if (questUserProgressModels == null || questUserProgressModels.isEmpty()) {
-                    this.languageService.sendTranslatedMessage(player, "quest_no_active");
-                    return;
-                }
-
-                QuestUserProgressModel questUserProgressModel = questUserProgressModels.getFirst();
-                QuestModel quest = questUserProgressModel.getQuest();
-
-                if (!quest.getName().equalsIgnoreCase(name)) {
-                    this.languageService.sendTranslatedMessage(player, "quest_not_active", name);
-                    return;
-                }
-
-                quest.getUserProgress().remove(questUserProgressModel);
-                quest.getUserQuests().removeIf(questUserModel -> questUserModel.getUuid().equals(player.getUniqueId()));
-
-                this.questUserProgressService.deleteQuest(player.getUniqueId(), name).thenCompose(progressResultType -> {
-                    return this.questService.getCache().synchronous().refresh(quest.getName()).thenAccept(unused -> {
-                        this.scoreboardService.update(player);
-                        this.languageService.sendTranslatedMessage(player, "quest_canceled_" + progressResultType.toString().toLowerCase());
-                    });
-                }).exceptionally(e -> {
-                    player.sendRichMessage("Error while canceling quest");
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error while canceling quest: " + e.getMessage(), e);
-                    return null;
-                });
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while searching for quest user progress");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress: " + e.getMessage(), e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            player.sendRichMessage("Error while searching for quest");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
-            return null;
-        });
-    }
-
-    private void requirementInfo(@NotNull Player player, String @NotNull [] args) {
-        if (!Maths.isDataType(args[2], Long.class)) {
-            this.languageService.sendTranslatedMessage(player, "invalid_quest_input");
-            return;
+            return questOperation.onCommand(player, command, label, args);
+        } catch (IndexOutOfBoundsException ignored) {
+            sendHelpMessage(player);
+            return false;
         }
-
-        long requirementId = Long.parseLong(args[2]);
-        this.questService.findRequirementById(requirementId).thenAccept(abstractQuestRequirement -> {
-            if (abstractQuestRequirement == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_requirement_not_exist");
-                return;
-            }
-
-            abstractQuestRequirement.sendInfo(player, this.languageService);
-        }).exceptionally(e -> {
-            player.sendRichMessage("Error while searching for quest requirement");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest requirement: " + e.getMessage(), e);
-            return null;
-        });
-
-    }
-
-    private void removeRequirement(@NotNull Player player, String @NotNull [] args) {
-        if (!Maths.isDataType(args[3], Long.class)) {
-            this.languageService.sendTranslatedMessage(player, "invalid_quest_input");
-            return;
-        }
-
-        String name = args[2];
-        long requirementId = Long.parseLong(args[3]);
-
-        this.questService.findByName(name).thenCompose(questModel -> {
-            if (questModel == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
-                return CompletableFuture.completedFuture(null);
-            }
-
-            AbstractQuestRequirement requirement = questModel.getRequirements().stream()
-                    .filter(req -> req.getId().equals(requirementId))
-                    .findFirst()
-                    .orElse(null);
-
-            if (requirement == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_requirement_not_exist");
-                return CompletableFuture.completedFuture(null);
-            }
-
-            return this.questService.removeRequirement(questModel, requirement).thenAccept(resultType -> {
-                this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while removing requirement from quest");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error removing requirement from quest: " + e.getMessage(), e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            player.sendRichMessage("Error while searching for quest");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error removing requirement from quest: " + e.getMessage(), e);
-            return null;
-        });
-    }
-
-    private void addRequirement(@NotNull Player player, String @NotNull [] args) {
-        if (!Maths.isDataType(args[4], Integer.class)) {
-            this.languageService.sendTranslatedMessage(player, "invalid_quest_input");
-            return;
-        }
-
-        QuestRequirementType requirementType = QuestRequirementType.getQuestRequirementType(args[3]);
-        if (requirementType == null) {
-            this.languageService.sendTranslatedMessage(player, "quest_invalid_requirement_type");
-            return;
-        }
-
-        String name = args[2];
-        this.questService.findByName(name).thenCompose(questModel -> {
-            if (questModel == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
-                return CompletableFuture.completedFuture(null);
-            }
-
-            int requiredAmount = Integer.parseInt(args[4]);
-            AbstractQuestRequirement requirement = this.questService.createRequirement(this.plugin, requirementType, requiredAmount, args);
-
-            if (requirement == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_requirement_creation_failed");
-                return CompletableFuture.completedFuture(null);
-            }
-
-            requirement.setQuest(questModel);
-
-            return this.questRequirementService.save(requirement).thenCompose(requirementId -> {
-                if (requirementId == null) {
-                    this.languageService.sendTranslatedMessage(player, "quest_requirement_creation_failed");
-                    return CompletableFuture.completedFuture(null);
-                }
-
-                questModel.getRequirements().add(requirement);
-                return this.questService.save(questModel).thenAccept(resultType -> {
-                    this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
-                }).exceptionally(e -> {
-                    player.sendRichMessage("Error while saving requirement to quest");
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving requirement to quest: " + e.getMessage(), e);
-                    return null;
-                });
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while saving requirement");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while saving requirement: " + e.getMessage(), e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            player.sendRichMessage("Error while finding quest");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while finding quest: " + e.getMessage(), e);
-            return null;
-        });
-    }
-
-    private void questInfo(@NotNull Player player) {
-        this.questUserProgressService.findByUuid(player.getUniqueId()).thenAccept(questUserProgressModels -> {
-            if (questUserProgressModels == null || questUserProgressModels.isEmpty()) {
-                this.languageService.sendTranslatedMessage(player, "quest_no_active");
-                return;
-            }
-
-            QuestModel questModel = questUserProgressModels.getFirst().getQuest();
-            questModel.sendProgressToUser(player, this.languageService, questUserProgressModels);
-        }).exceptionally(e -> {
-            player.sendRichMessage("Error while searching for user quest progress");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for user quest progress: " + e.getMessage(), e);
-            return null;
-        });
-    }
-
-    private void create(@NotNull Player player, String @NotNull [] args) {
-        String name = args[1];
-        if (name.length() > 40) {
-            this.languageService.sendTranslatedMessage(player, "quest_name_too_long");
-            return;
-        }
-
-        this.questService.findByName(name).thenAccept(questModel -> {
-            if (questModel != null) {
-                this.languageService.sendTranslatedMessage(player, "quest_exist");
-                return;
-            }
-
-            questModel = new QuestModel(name);
-            this.questService.save(questModel).thenAccept(resultType -> {
-                if (resultType == ResultType.SUCCESS) {
-                    this.languageService.sendTranslatedMessage(player, "quest_created");
-                    return;
-                }
-
-                this.languageService.sendTranslatedMessage(player, "quest_create_error");
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while saving quest");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving quest: " + e.getMessage(), e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            player.sendRichMessage("Error while searching for quest");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest " + e.getMessage(), e);
-            return null;
-        });
-    }
-
-    private void delete(@NotNull Player player, String @NotNull [] args) {
-        String name = args[1];
-        this.questService.delete(name).thenAccept(resultType -> {
-            this.languageService.sendTranslatedMessage(player, "quest_deleted_" + resultType.toString().toLowerCase());
-        }).exceptionally(e -> {
-            player.sendRichMessage("Error while deleting quest");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error deleting quest: " + e.getMessage(), e);
-            return null;
-        });
-    }
-
-    private void updatePermission(@NotNull Player player, String @NotNull [] args) {
-        String name = args[2];
-        String permission = args[3];
-
-        this.questService.findByName(name).thenAccept(questModel -> {
-            if (questModel == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
-                return;
-            }
-
-            questModel.setPermission(permission);
-            this.questService.save(questModel).thenAccept(resultType -> {
-                this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while saving permission for quest");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving permission for quest: " + e.getMessage(), e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            player.sendRichMessage("Error while searching for quest");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
-            return null;
-        });
-    }
-
-    private void updateDisplayName(@NotNull Player player, String @NotNull [] args) {
-        String name = args[2];
-        String displayName = args[3];
-
-        this.questService.findByName(name).thenAccept(questModel -> {
-            if (questModel == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
-                return;
-            }
-
-            questModel.setDisplayName(displayName);
-            this.questService.save(questModel).thenAccept(resultType -> {
-                this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while saving displayname for quest");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving displayname for quest: " + e.getMessage(), e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
-            return null;
-        });
-    }
-
-    private void updateDescription(@NotNull Player player, String @NotNull [] args) {
-        String name = args[2];
-        String description = StringUtils.join(args, " ", 3);
-
-        this.questService.findByName(name).thenAccept(questModel -> {
-            if (questModel == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
-                return;
-            }
-
-            questModel.setDescription(description);
-            this.questService.save(questModel).thenAccept(resultType -> {
-                this.scoreboardService.update(player);
-                this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while saving description for quest");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving description for quest: " + e.getMessage(), e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
-            return null;
-        });
-    }
-
-    private void updateDuration(@NotNull Player player, String @NotNull [] args) {
-        String durationString = args[3];
-        long seconds = TimeUtils.parseDurationToSeconds(durationString);
-
-        if (seconds == 0) {
-            this.languageService.sendTranslatedMessage(player, "quest_duration_invalid");
-            return;
-        }
-
-        String name = args[2];
-        this.questService.findByName(name).thenAccept(questModel -> {
-            if (questModel == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
-                return;
-            }
-
-            questModel.setDuration(seconds);
-            this.questService.save(questModel).thenAccept(resultType -> {
-                this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while saving duration for quest");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving duration for quest: " + e.getMessage(), e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
-            return null;
-        });
-
-    }
-
-    private void addReward(@NotNull Player player, String @NotNull [] args) {
-        if (!Maths.isDataType(args[3], Long.class)) {
-            this.languageService.sendTranslatedMessage(player, "invalid_quest_input");
-            return;
-        }
-
-        String name = args[2];
-        long rewardId = Long.parseLong(args[3]);
-
-        this.questService.findByName(name).thenCompose(questModel -> {
-            if (questModel == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
-                return CompletableFuture.completedFuture(null);
-            }
-
-            return this.questRewardService.findById(rewardId).thenCompose(questRewardModel -> {
-                if (questRewardModel == null) {
-                    this.languageService.sendTranslatedMessage(player, "quest_reward_not_exist");
-                    return CompletableFuture.completedFuture(null);
-                }
-
-                if (questModel.hasReward(rewardId)) {
-                    this.languageService.sendTranslatedMessage(player, "quest_reward_already_added");
-                    return CompletableFuture.completedFuture(null);
-                }
-
-                questModel.getRewards().add(questRewardModel);
-                return this.questService.save(questModel).thenAccept(resultType -> {
-                    this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
-                }).exceptionally(e -> {
-                    player.sendRichMessage("Error while saving reward to quest");
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving reward to quest: " + e.getMessage(), e);
-                    return null;
-                });
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while searching for a reward");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for a reward " + e.getMessage(), e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            player.sendRichMessage("Error while searching for quest");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for a quest: " + e.getMessage(), e);
-            return null;
-        });
-    }
-
-    private void removeReward(@NotNull Player player, String @NotNull [] args) {
-        if (!Maths.isDataType(args[3], Long.class)) {
-            this.languageService.sendTranslatedMessage(player, "invalid_quest_input");
-            return;
-        }
-
-        String name = args[2];
-        long rewardId = Long.parseLong(args[3]);
-
-        this.questService.findByName(name).thenCompose(questModel -> {
-            if (questModel == null) {
-                this.languageService.sendTranslatedMessage(player, "quest_not_exist");
-                return CompletableFuture.completedFuture(null);
-            }
-
-            return this.questRewardService.findById(rewardId).thenCompose(questRewardModel -> {
-                if (questRewardModel == null) {
-                    this.languageService.sendTranslatedMessage(player, "quest_reward_not_exist");
-                    return CompletableFuture.completedFuture(null);
-                }
-
-                if (!questModel.hasReward(rewardId)) {
-                    this.languageService.sendTranslatedMessage(player, "quest_reward_not_added");
-                    return CompletableFuture.completedFuture(null);
-                }
-
-                questModel.getRewards().removeIf(reward -> reward.getId().equals(rewardId));
-                return this.questService.save(questModel).thenAccept(resultType -> {
-                    this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
-                }).exceptionally(e -> {
-                    player.sendRichMessage("Error while saving reward to quest");
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving reward to quest: " + e.getMessage(), e);
-                    return null;
-                });
-            }).exceptionally(e -> {
-                player.sendRichMessage("Error while searching for a reward");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for a reward: " + e.getMessage(), e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for a quest: " + e.getMessage(), e);
-            return null;
-        });
     }
 
     private void sendHelpMessage(@NotNull Player player) {
-        player.sendRichMessage("Quest create <Name>");
-        player.sendRichMessage("Quest delete <Name>");
-        player.sendRichMessage("Quest accept <Name>");
-        player.sendRichMessage("Quest cancel <Name>");
-        player.sendRichMessage("Quest update displayname <Name> <Displayname>");
-        player.sendRichMessage("Quest update description <Name> <Description>");
-        player.sendRichMessage("Quest update duration <Name> <Duration>");
-        player.sendRichMessage("Quest update permission <Name> <Permission>");
-        player.sendRichMessage("Quest reward add <Name> <RewardId>");
-        player.sendRichMessage("Quest reward remove <Name> <RewardId>");
-        player.sendRichMessage("Quest reward remove <Name> <RewardId>");
-        player.sendRichMessage("Quest requirement add <Name> <Type> <RequiredAmount> <Material/EntityType>");
-        player.sendRichMessage("Quest requirement remove <Name> <Id>");
-        player.sendRichMessage("Quest requirement info <Id>");
-        player.sendRichMessage("Quest info");
+        player.sendMessage("Quest create <Name>",
+                "Quest delete <Name>",
+                "Quest accept <Name>",
+                "Quest cancel <Name>",
+                "Quest update displayname <Name> <Displayname>",
+                "Quest update description <Name> <Description>",
+                "Quest update duration <Name> <Duration>",
+                "Quest update permission <Name> <Permission>",
+                "Quest reward add <Name> <RewardId>",
+                "Quest reward remove <Name> <RewardId>",
+                "Quest requirement add <Name> <Type> <RequiredAmount> <Material/EntityType>",
+                "Quest requirement remove <Name> <Id>",
+                "Quest requirement info <Id>",
+                "Quest info");
     }
 }

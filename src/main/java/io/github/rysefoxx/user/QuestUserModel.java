@@ -34,9 +34,9 @@ public class QuestUserModel {
     @JoinColumn(name = "quest_name")
     private QuestModel quest;
 
-    public QuestUserModel(UUID uuid, LocalDateTime expiration, QuestModel quest) {
+    public QuestUserModel(UUID uuid, QuestModel quest) {
         this.uuid = uuid;
-        this.expiration = expiration;
+        this.expiration = LocalDateTime.now().plusSeconds(quest.getDuration());
         this.quest = quest;
     }
 }
