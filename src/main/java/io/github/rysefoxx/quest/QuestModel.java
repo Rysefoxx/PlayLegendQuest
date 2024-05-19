@@ -63,23 +63,52 @@ public class QuestModel {
     @OneToMany(mappedBy = "quest", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<AbstractQuestRequirement> requirements = new ArrayList<>();
 
-    public QuestModel(String name) {
+    /**
+     * Creates a new quest model with the given name.
+     *
+     * @param name The name of the quest.
+     */
+    public QuestModel(@NotNull String name) {
         this.name = name;
         this.displayName = name;
     }
 
+    /**
+     * Checks if the quest has the given reward.
+     *
+     * @param rewardId The identifier of the reward.
+     * @return True if the quest has the reward, otherwise false.
+     */
     public boolean hasReward(@Nonnegative long rewardId) {
         return this.rewards.stream().anyMatch(questRewardModel -> questRewardModel.getId().equals(rewardId));
     }
 
+    /**
+     * Checks if the quest is configured and ready to be used.
+     *
+     * @return True if the quest is configured, otherwise false.
+     */
     public boolean isConfigured() {
         return !this.requirements.isEmpty() && this.duration > 0;
     }
 
+    /**
+     * Checks if the quest has the given requirement.
+     *
+     * @param requirementId The identifier of the requirement.
+     * @return True if the quest has the requirement, otherwise false.
+     */
     public boolean hasRequirement(@Nonnegative long requirementId) {
         return this.requirements.stream().anyMatch(abstractQuestRequirement -> abstractQuestRequirement.getId().equals(requirementId));
     }
 
+    /**
+     * Sends the quest information to the player and displays his progress.
+     *
+     * @param player                  The player to send the information to.
+     * @param languageService         The language service to use for translations.
+     * @param questUserProgressModels The progress of the player.
+     */
     public void sendProgressToUser(@NotNull Player player, @NotNull LanguageService languageService, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
         QuestUserModel questUserModel = getUserQuestModel(player);
         int completedRequirements = getCompletedRequirementsCount(questUserProgressModels);
@@ -97,10 +126,23 @@ public class QuestModel {
         }
     }
 
+    /**
+     * Gets the number of completed requirements.
+     *
+     * @param questUserProgressModels The progress of the player.
+     * @return The number of completed requirements.
+     */
     public @Nonnegative int getCompletedRequirementsCount(@NotNull List<QuestUserProgressModel> questUserProgressModels) {
         return getRequirements().size() - questUserProgressModels.size();
     }
 
+    /**
+     * Gets the progress details for the player.
+     *
+     * @param requirementTranslation  The translation for the requirement.
+     * @param questUserProgressModels The progress of the player.
+     * @return The progress details.
+     */
     private @NotNull List<String> getProgressDetails(@NotNull String requirementTranslation, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
         List<String> progressDetails = new ArrayList<>();
 
@@ -118,14 +160,31 @@ public class QuestModel {
         return progressDetails;
     }
 
+    /**
+     * Checks if the quest is completed.
+     *
+     * @param questUserProgressModels The progress of the player.
+     * @return True if the quest is completed, otherwise false.
+     */
     public boolean isCompleted(@NotNull List<QuestUserProgressModel> questUserProgressModels) {
         return questUserProgressModels.isEmpty() || questUserProgressModels.stream().allMatch(QuestUserProgressModel::isCompleted);
     }
 
+    /**
+     * Checks if the quest has a permission. If the quest has a permission, the player must have the permission to start the quest.
+     *
+     * @return True if the quest has a permission, otherwise false.
+     */
     public boolean hasPermission() {
         return this.permission != null;
     }
 
+    /**
+     * Gets the user quest model for the given player.
+     *
+     * @param player The player to get the user quest model for.
+     * @return The user quest model or null if the player has no user quest model.
+     */
     public @Nullable QuestUserModel getUserQuestModel(@NotNull Player player) {
         return this.userQuests.stream()
                 .filter(questUserModel -> questUserModel.getUuid().equals(player.getUniqueId()))

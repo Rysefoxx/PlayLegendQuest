@@ -4,7 +4,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 import org.jetbrains.annotations.Contract;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.yaml.snakeyaml.external.biz.base64Coder.Base64Coder;
 
@@ -20,36 +19,13 @@ import java.util.List;
  */
 public class ItemStackSerializer {
 
-    public static @Nullable String itemStackToBase64(@NotNull ItemStack itemStack) {
-        String base64 = null;
-
-        try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            BukkitObjectOutputStream bukkitOut = new BukkitObjectOutputStream(out);
-            bukkitOut.writeObject(itemStack);
-            bukkitOut.close();
-            base64 = Base64Coder.encodeLines(out.toByteArray());
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-
-        return base64;
-    }
-
-    public static @Nullable ItemStack itemStackFromBase64(String base64) {
-        ItemStack result = null;
-        ByteArrayInputStream in = new ByteArrayInputStream(Base64Coder.decodeLines(base64));
-        try {
-            BukkitObjectInputStream bukkitIn = new BukkitObjectInputStream(in);
-            result = (ItemStack) bukkitIn.readObject();
-            bukkitIn.close();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
-
-        return result;
-    }
-
+    /**
+     * Converts an {@link ItemStack} array to a Base64 encoded string.
+     *
+     * @param items The item stack array to convert.
+     * @return The Base64 encoded string.
+     * @throws IllegalStateException If the item stack array cannot be saved.
+     */
     @Contract("null -> null")
     public static String itemStackListToBase64(@Nullable List<ItemStack> items) throws IllegalStateException {
         if (items == null) return null;
@@ -70,6 +46,13 @@ public class ItemStackSerializer {
         }
     }
 
+    /**
+     * Converts a Base64 encoded string to an {@link ItemStack} array.
+     *
+     * @param data The Base64 encoded string to convert.
+     * @return The item stack array.
+     * @throws IOException If the Base64 encoded string cannot be decoded.
+     */
     @Contract("null -> null")
     public static List<ItemStack> itemStackListFromBase64(@Nullable String data) throws IOException {
         if (data == null) return null;

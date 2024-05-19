@@ -37,6 +37,12 @@ public class QuestRewardModel {
     @ManyToMany(mappedBy = "rewards", fetch = FetchType.EAGER)
     private List<QuestModel> quests = new ArrayList<>();
 
+    /**
+     * Creates a new QuestRewardModel
+     *
+     * @param questRewardType The type of the reward
+     * @param reward          The reward
+     */
     public QuestRewardModel(@NotNull QuestRewardType questRewardType, @NotNull String reward) {
         this.questRewardType = questRewardType;
         this.reward = reward;

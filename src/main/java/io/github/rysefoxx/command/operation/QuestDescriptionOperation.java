@@ -43,6 +43,14 @@ public class QuestDescriptionOperation implements QuestOperation {
         return false;
     }
 
+    /**
+     * Handles the quest model. If the quest model is null the player will receive a message, that the quest does not exist.
+     *
+     * @param player      The player who executed the command.
+     * @param questModel  The quest model.
+     * @param description The description of the quest.
+     * @return A completable future.
+     */
     private @NotNull CompletableFuture<@Nullable Void> handleQuestModel(@NotNull Player player, @Nullable QuestModel questModel, @NotNull String description) {
         if (questModel == null) {
             languageService.sendTranslatedMessage(player, "quest_not_exist");
@@ -55,11 +63,25 @@ public class QuestDescriptionOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error while saving description for quest", e));
     }
 
+    /**
+     * Handles the save result. Updates the scoreboard and sends a message to the player.
+     *
+     * @param player     The player who executed the command.
+     * @param resultType The result type.
+     */
     private void handleSaveResult(@NotNull Player player, @NotNull ResultType resultType) {
         scoreboardService.update(player);
         languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
     }
 
+    /**
+     * Handles the error. Sends a message to the player and logs the error.
+     *
+     * @param player    The player who executed the command.
+     * @param message   The message to send.
+     * @param throwable The throwable.
+     * @return null
+     */
     private @Nullable Void handleError(@NotNull Player player, @NotNull String message, @NotNull Throwable throwable) {
         player.sendRichMessage(message);
         PlayLegendQuest.getLog().log(Level.SEVERE, message + ": " + throwable.getMessage(), throwable);

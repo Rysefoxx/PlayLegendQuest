@@ -34,6 +34,9 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
     @Getter
     private final AsyncLoadingCache<String, QuestModel> cache;
 
+    /**
+     * Creates a new service instance and initializes the cache. The cache will expire after 15 minutes of inactivity.
+     */
     public QuestService() {
         this.sessionFactory = ConnectionService.getSessionFactory();
         this.cache = Caffeine.newBuilder()
@@ -41,8 +44,14 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
                 .buildAsync(this::getQuestModel);
     }
 
+    /**
+     * Saves the object to the database.
+     *
+     * @param toSave The object to save.
+     * @return The result of the operation.
+     */
     @Override
-    public CompletableFuture<@NotNull ResultType> save(QuestModel toSave) {
+    public @NotNull CompletableFuture<@NotNull ResultType> save(@NotNull QuestModel toSave) {
         return CompletableFuture.supplyAsync(() -> {
             Transaction transaction = null;
             try (Session session = sessionFactory.openSession()) {
@@ -67,8 +76,14 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
         });
     }
 
+    /**
+     * Deletes the object from the database by the given identifier.
+     *
+     * @param toDelete The id to delete.
+     * @return The result of the operation.
+     */
     @Override
-    public CompletableFuture<@NotNull ResultType> delete(String toDelete) {
+    public @NotNull CompletableFuture<@NotNull ResultType> delete(@NotNull String toDelete) {
         return CompletableFuture.supplyAsync(() -> {
             Transaction transaction = null;
             try (Session session = sessionFactory.openSession()) {
@@ -89,7 +104,14 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
         });
     }
 
-    public CompletableFuture<ResultType> removeRequirement(@NotNull QuestModel questModel, @NotNull AbstractQuestRequirement requirement) {
+    /**
+     * Removes a requirement from the given quest model.
+     *
+     * @param questModel  The quest model to remove the requirement from.
+     * @param requirement The requirement to remove.
+     * @return The result of the operation.
+     */
+    public @NotNull CompletableFuture<@NotNull ResultType> removeRequirement(@NotNull QuestModel questModel, @NotNull AbstractQuestRequirement requirement) {
         return CompletableFuture.supplyAsync(() -> {
             Transaction transaction = null;
             try (Session session = sessionFactory.openSession()) {
@@ -109,7 +131,14 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
         });
     }
 
-    private CompletableFuture<QuestModel> getQuestModel(@NotNull String questName, @NotNull Executor executor) {
+    /**
+     * Gets the quest model always from the database by the given identifier.
+     *
+     * @param questName The identifier of the quest model.
+     * @param executor  The executor to run the operation on.
+     * @return The quest model or null if an error occurred.
+     */
+    private @NotNull CompletableFuture<@Nullable QuestModel> getQuestModel(@NotNull String questName, @NotNull Executor executor) {
         return CompletableFuture.supplyAsync(() -> {
             try (Session session = sessionFactory.openSession()) {
                 return session.get(QuestModel.class, questName);
@@ -120,10 +149,22 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
         }, executor);
     }
 
+    /**
+     * Finds a quest model by the given identifier in the cache. If the quest model is not in the cache, it will be loaded from the database.
+     *
+     * @param questName The identifier of the quest model.
+     * @return The quest model or null if an error occurred.
+     */
     public CompletableFuture<QuestModel> findByName(@NotNull String questName) {
         return this.cache.get(questName);
     }
 
+    /**
+     * Finds a requirement by the given identifier.
+     *
+     * @param requirementId The identifier of the requirement.
+     * @return The requirement or null if an error occurred.
+     */
     public @NotNull CompletableFuture<@Nullable AbstractQuestRequirement> findRequirementById(@Nonnegative long requirementId) {
         return CompletableFuture.supplyAsync(() -> {
             try (Session session = sessionFactory.openSession()) {
@@ -135,6 +176,15 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
         });
     }
 
+    /**
+     * Creates a new requirement instance based on the given arguments.
+     *
+     * @param plugin            The plugin instance.
+     * @param requirementType   The type of the requirement.
+     * @param requirementAmount The amount of the requirement.
+     * @param args              The arguments to create the requirement.
+     * @return The requirement instance or null if an error occurred.
+     */
     public @Nullable AbstractQuestRequirement createRequirement(@NotNull PlayLegendQuest plugin, @NotNull QuestRequirementType requirementType, @Nonnegative int requirementAmount, @NotNull String[] args) {
         String data = args[5];
         return switch (requirementType) {

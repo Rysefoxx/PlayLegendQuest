@@ -20,13 +20,22 @@ public class QuestRequirementService {
 
     private final SessionFactory sessionFactory;
 
+    /**
+     * Creates a new service instance. It registers all listeners for the implemented {@link AbstractQuestRequirement}.
+     */
     public QuestRequirementService(@NotNull PlayLegendQuest plugin) {
         this.sessionFactory = ConnectionService.getSessionFactory();
 
         registerListener(plugin);
     }
 
-    public CompletableFuture<@Nullable Long> save(AbstractQuestRequirement toSave) {
+    /**
+     * Saves the requirement to the database.
+     *
+     * @param toSave The requirement to save.
+     * @return The result of the operation.
+     */
+    public @NotNull CompletableFuture<@Nullable Long> save(@NotNull AbstractQuestRequirement toSave) {
         return CompletableFuture.supplyAsync(() -> {
             Transaction transaction = null;
             try (Session session = sessionFactory.openSession()) {
@@ -42,6 +51,11 @@ public class QuestRequirementService {
         });
     }
 
+    /**
+     * Get all requirements from the database.
+     *
+     * @return A list of all requirements.
+     */
     private CompletableFuture<List<AbstractQuestRequirement>> findAll() {
         return CompletableFuture.supplyAsync(() -> {
             try (Session session = sessionFactory.openSession()) {

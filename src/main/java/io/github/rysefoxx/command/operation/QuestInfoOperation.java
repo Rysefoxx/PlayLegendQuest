@@ -38,6 +38,13 @@ public class QuestInfoOperation implements QuestOperation {
         return false;
     }
 
+    /**
+     * Handles the quest user progress. If the quest user progress is null or empty, the player will receive a message, that no quest is active.
+     *
+     * @param player                  The player who executed the command.
+     * @param questUserProgressModels The quest user progress models.
+     * @return A completable future.
+     */
     private @NotNull CompletableFuture<@Nullable Void> handleQuestUserProgress(@NotNull Player player, @Nullable List<QuestUserProgressModel> questUserProgressModels) {
         if (questUserProgressModels == null || questUserProgressModels.isEmpty()) {
             languageService.sendTranslatedMessage(player, "quest_no_active");
@@ -49,6 +56,13 @@ public class QuestInfoOperation implements QuestOperation {
         return CompletableFuture.completedFuture(null);
     }
 
+    /**
+     * Handles the error. The player will receive a message, that an error occurred.
+     *
+     * @param player    The player who executed the command.
+     * @param throwable The throwable.
+     * @return Null.
+     */
     private @Nullable Void handleError(@NotNull Player player, @NotNull Throwable throwable) {
         player.sendRichMessage("Error while searching for user quest progress");
         PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for user quest progress" + ": " + throwable.getMessage(), throwable);

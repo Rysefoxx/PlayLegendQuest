@@ -42,6 +42,14 @@ public class QuestCreateOperation implements QuestOperation {
         return false;
     }
 
+    /**
+     * Handles the quest model. If the quest model is not null, the player will receive a message, that the quest already exists.
+     *
+     * @param player     The player who executed the command.
+     * @param questModel The quest model.
+     * @param name       The name of the quest.
+     * @return A completable future.
+     */
     private @NotNull CompletableFuture<@Nullable Void> handleQuestModel(@NotNull Player player, @Nullable QuestModel questModel, @NotNull String name) {
         if (questModel != null) {
             languageService.sendTranslatedMessage(player, "quest_exists");
@@ -54,10 +62,23 @@ public class QuestCreateOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error while saving quest", e));
     }
 
+    /**
+     * Handles the result of the save operation. The player will receive a message, that the quest was created successfully.
+     *
+     * @param player     The player who executed the command.
+     * @param resultType The result type of the save operation.
+     */
     private void handleSaveResult(@NotNull Player player, @NotNull ResultType resultType) {
         languageService.sendTranslatedMessage(player, "quest_create_" + resultType.toString().toLowerCase());
     }
 
+    /**
+     * Handles an error. The player will receive a message and the error will be logged.
+     * @param player The player who executed the command.
+     * @param message The message to send to the player.
+     * @param throwable The throwable that occurred.
+     * @return null
+     */
     private @Nullable Void handleError(@NotNull Player player, @NotNull String message, @NotNull Throwable throwable) {
         player.sendRichMessage(message);
         PlayLegendQuest.getLog().log(Level.SEVERE, message + ": " + throwable.getMessage(), throwable);

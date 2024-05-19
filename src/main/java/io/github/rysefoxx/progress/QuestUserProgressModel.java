@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
@@ -42,12 +43,22 @@ public class QuestUserProgressModel {
     @Column(nullable = false, columnDefinition = "BOOLEAN")
     private boolean completed;
 
-    public QuestUserProgressModel(UUID uuid, QuestModel quest, AbstractQuestRequirement requirement) {
+    /**
+     * Creates a new instance of the model.
+     *
+     * @param uuid        The UUID of the player.
+     * @param quest       The quest.
+     * @param requirement The requirement.
+     */
+    public QuestUserProgressModel(@NotNull UUID uuid, @NotNull QuestModel quest, @NotNull AbstractQuestRequirement requirement) {
         this.uuid = uuid;
         this.quest = quest;
         this.requirement = requirement;
     }
 
+    /**
+     * @return true if the requirement is completed.
+     */
     public boolean isDone() {
         return this.progress >= this.requirement.getRequiredAmount();
     }

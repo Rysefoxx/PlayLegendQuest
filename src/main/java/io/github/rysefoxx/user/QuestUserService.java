@@ -42,7 +42,14 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
     private final ScoreboardService scoreboardService;
     private final QuestService questService;
 
-    public QuestUserService(@NotNull PlayLegendQuest plugin, @NotNull QuestUserProgressService questUserProgressService, @NotNull LanguageService languageService, @NotNull ScoreboardService scoreboardService, @NotNull QuestService questService) {
+    /**
+     * Creates a new service instance and defines the AsyncCache, which stores data temporarily and deletes it 15 minutes after the last access. An asynchronous scheduler is also started, which checks whether the quest has expired.
+     */
+    public QuestUserService(@NotNull PlayLegendQuest plugin,
+                            @NotNull QuestUserProgressService questUserProgressService,
+                            @NotNull LanguageService languageService,
+                            @NotNull ScoreboardService scoreboardService,
+                            @NotNull QuestService questService) {
         this.questUserProgressService = questUserProgressService;
         this.languageService = languageService;
         this.scoreboardService = scoreboardService;
@@ -54,8 +61,14 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
         expirationScheduler(plugin);
     }
 
+    /**
+     * Saves the object to the database.
+     *
+     * @param toSave The object to save.
+     * @return The result of the operation.
+     */
     @Override
-    public CompletableFuture<@NotNull ResultType> save(QuestUserModel toSave) {
+    public @NotNull CompletableFuture<@NotNull ResultType> save(@NotNull QuestUserModel toSave) {
         return CompletableFuture.supplyAsync(() -> {
             Transaction transaction = null;
             try (Session session = sessionFactory.openSession()) {
@@ -80,8 +93,14 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
         });
     }
 
+    /**
+     * Deletes the object from the database by the given identifier.
+     *
+     * @param toDelete The id to delete.
+     * @return The result of the operation.
+     */
     @Override
-    public CompletableFuture<@NotNull ResultType> delete(Long toDelete) {
+    public @NotNull CompletableFuture<@NotNull ResultType> delete(@NotNull Long toDelete) {
         return CompletableFuture.supplyAsync(() -> {
             Transaction transaction = null;
             try (Session session = sessionFactory.openSession()) {
@@ -102,7 +121,13 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
         });
     }
 
-    public CompletableFuture<@NotNull ResultType> deleteByUuid(UUID uuid) {
+    /**
+     * Deletes the object from the database by the given uuid.
+     *
+     * @param uuid The uuid to delete.
+     * @return The result of the operation.
+     */
+    public @NotNull CompletableFuture<@NotNull ResultType> deleteByUuid(@NotNull UUID uuid) {
         return CompletableFuture.supplyAsync(() -> {
             Transaction transaction = null;
             try (Session session = sessionFactory.openSession()) {
@@ -126,7 +151,13 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
         });
     }
 
-    private CompletableFuture<QuestUserModel> getQuestUserModel(@NotNull Long id, @NotNull Executor executor) {
+    /**
+     * Searches for a QuestUserModel by the given id.
+     *
+     * @param id The id to search for.
+     * @return The QuestUserModel or null if the search failed.
+     */
+    private @NotNull CompletableFuture<@Nullable QuestUserModel> getQuestUserModel(@NotNull Long id, @NotNull Executor executor) {
         return CompletableFuture.supplyAsync(() -> {
             try (Session session = sessionFactory.openSession()) {
                 return session.get(QuestUserModel.class, id);
@@ -137,12 +168,23 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
         }, executor);
     }
 
+    /**
+     * Starts the asynchronous scheduler, which checks every second whether the quest has expired. If the quest has expired, it will be deleted from the database.
+     *
+     * @param plugin The plugin instance.
+     */
     private void expirationScheduler(@NotNull PlayLegendQuest plugin) {
-        if(PlayLegendQuest.isUnitTest()) return;
+        if (PlayLegendQuest.isUnitTest()) return;
 
         Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> cache.synchronous().asMap().forEach(this::handleQuestExpiration), 0, 1, TimeUnit.SECONDS);
     }
 
+    /**
+     * Checks whether the quest has expired. If the quest has expired, it will be deleted from the database.
+     *
+     * @param id             The id of the quest.
+     * @param questUserModel The quest user model.
+     */
     private void handleQuestExpiration(@NotNull Long id, @NotNull QuestUserModel questUserModel) {
         if (questUserModel.getExpiration().isAfter(LocalDateTime.now())) return;
 
@@ -166,6 +208,12 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
                 .exceptionally(throwable -> handleError(player, throwable));
     }
 
+    /**
+     * Notifies the player that the quest has expired.
+     *
+     * @param player             The player to notify.
+     * @param progressResultType The result of the operation.
+     */
     private void notifyPlayerOnExpiration(@Nullable Player player, @NotNull ResultType progressResultType) {
         if (player == null) return;
 
@@ -173,6 +221,13 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
         languageService.sendTranslatedMessage(player, "quest_expired_" + progressResultType.toString().toLowerCase());
     }
 
+    /**
+     * Handles an error that occurred while searching for quest user progress.
+     *
+     * @param player    The player to notify. Can be null.
+     * @param throwable The error that occurred.
+     * @return null
+     */
     private @Nullable Void handleError(@Nullable Player player, @NotNull Throwable throwable) {
         if (player != null) {
             player.sendRichMessage("Error while searching for quest user progress");

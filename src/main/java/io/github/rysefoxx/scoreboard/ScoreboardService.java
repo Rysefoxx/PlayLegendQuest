@@ -99,8 +99,6 @@ public class ScoreboardService {
      * @param player The player to update the scoreboard for.
      */
     public void update(@NotNull Player player) {
-//        if (PlayLegendQuest.isUnitTest()) return;
-
         updateSidebar(player);
     }
 

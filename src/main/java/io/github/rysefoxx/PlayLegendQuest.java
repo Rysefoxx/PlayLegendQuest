@@ -67,25 +67,9 @@ public class PlayLegendQuest extends JavaPlugin {
         initializeListeners();
     }
 
-
     @Override
     public void onDisable() {
         this.connectionService.closeConnection();
-    }
-
-    private void initializeManagers() {
-        this.connectionService = new ConnectionService(this);
-        new DatabaseTableService(this, this.connectionService);
-
-        this.languageService = new LanguageService(this);
-
-        this.playerStatisticsService = new PlayerStatisticsService();
-        this.questRewardService = new QuestRewardService(this);
-        this.questService = new QuestService();
-        this.questUserProgressService = new QuestUserProgressService();
-        this.questRequirementService = new QuestRequirementService(this);
-        this.scoreboardService = new ScoreboardService(this.questUserProgressService, this.languageService);
-        this.questUserService = new QuestUserService(this, this.questUserProgressService, this.languageService, this.scoreboardService, this.questService);
     }
 
 
@@ -101,6 +85,21 @@ public class PlayLegendQuest extends JavaPlugin {
     protected PlayLegendQuest(@NotNull JavaPluginLoader loader, @NotNull PluginDescriptionFile description, @NotNull File dataFolder, @NotNull File file) {
         super(loader, description, dataFolder, file);
         unitTest = true;
+    }
+
+    private void initializeManagers() {
+        this.connectionService = new ConnectionService(this);
+        new DatabaseTableService(this, this.connectionService);
+
+        this.languageService = new LanguageService(this);
+
+        this.playerStatisticsService = new PlayerStatisticsService();
+        this.questRewardService = new QuestRewardService(this);
+        this.questService = new QuestService();
+        this.questUserProgressService = new QuestUserProgressService();
+        this.questRequirementService = new QuestRequirementService(this);
+        this.scoreboardService = new ScoreboardService(this.questUserProgressService, this.languageService);
+        this.questUserService = new QuestUserService(this, this.questUserProgressService, this.languageService, this.scoreboardService, this.questService);
     }
 
     private void initializeCommands() {

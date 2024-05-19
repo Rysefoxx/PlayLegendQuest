@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -34,7 +35,13 @@ public class QuestUserModel {
     @JoinColumn(name = "quest_name")
     private QuestModel quest;
 
-    public QuestUserModel(UUID uuid, QuestModel quest) {
+    /**
+     * Create a new QuestUserModel. The expiration date is calculated by the current time and the duration of the quest.
+     *
+     * @param uuid  The UUID of the player
+     * @param quest The quest the player is currently doing
+     */
+    public QuestUserModel(@NotNull UUID uuid, @NotNull QuestModel quest) {
         this.uuid = uuid;
         this.expiration = LocalDateTime.now().plusSeconds(quest.getDuration());
         this.quest = quest;

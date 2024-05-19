@@ -50,6 +50,14 @@ public class QuestAcceptOperation implements QuestOperation {
         return false;
     }
 
+    /**
+     * Handles the quest model. If the quest model is null, not configured or the player has no permission, the player will receive a message.
+     *
+     * @param player     The player who executed the command.
+     * @param questModel The quest model.
+     * @param name       The name of the quest.
+     * @return A completable future.
+     */
     private @NotNull CompletableFuture<@Nullable Void> handleQuestModel(@NotNull Player player, @Nullable QuestModel questModel, @NotNull String name) {
         if (questModel == null) {
             languageService.sendTranslatedMessage(player, "quest_not_exist");
@@ -71,6 +79,15 @@ public class QuestAcceptOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error while searching for quest user progress", e));
     }
 
+    /**
+     * Handles the has quest. If the player has the quest, the player will receive a message. If the player has not the quest, the quest will be accepted.
+     *
+     * @param player     The player who executed the command.
+     * @param hasQuest   If the player has the quest.
+     * @param name       The name of the quest.
+     * @param questModel The quest model.
+     * @return A completable future.
+     */
     private @NotNull CompletableFuture<@Nullable Void> handleHasQuest(@NotNull Player player, boolean hasQuest, @NotNull String name, @NotNull QuestModel questModel) {
         if (hasQuest) {
             languageService.sendTranslatedMessage(player, "quest_already_active");
@@ -82,6 +99,14 @@ public class QuestAcceptOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error while checking if quest is completed", e));
     }
 
+    /**
+     * Handles the is quest completed. If the quest is completed, the player will receive a message. If the quest is not completed, the quest will be accepted.
+     *
+     * @param player      The player who executed the command.
+     * @param isCompleted If the quest is completed.
+     * @param questModel  The quest model.
+     * @return A completable future.
+     */
     private @NotNull CompletableFuture<@Nullable Void> handleIsQuestCompleted(@NotNull Player player, boolean isCompleted, @NotNull QuestModel questModel) {
         if (isCompleted) {
             languageService.sendTranslatedMessage(player, "quest_already_completed");
@@ -94,6 +119,14 @@ public class QuestAcceptOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error while accepting quest", e));
     }
 
+    /**
+     * Handles the save user. If the user result type is not success, the player will receive a message. If the user result type is success, the quest will be saved.
+     *
+     * @param player         The player who executed the command.
+     * @param userResultType The result type of the user.
+     * @param questModel     The quest model.
+     * @return A completable future.
+     */
     private @NotNull CompletableFuture<@Nullable Void> handleSaveUser(@NotNull Player player, @NotNull ResultType userResultType, @NotNull QuestModel questModel) {
         if (userResultType != ResultType.SUCCESS) {
             languageService.sendTranslatedMessage(player, "quest_save_failed");
@@ -105,6 +138,14 @@ public class QuestAcceptOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error while accepting quest", e));
     }
 
+    /**
+     * Handles the save quest. If the quest result type is not success, the player will receive a message. If the quest result type is success, the player will receive a message and the scoreboard will be updated.
+     *
+     * @param player          The player who executed the command.
+     * @param questResultType The result type of the quest.
+     * @param questModel      The quest model.
+     * @return A completable future.
+     */
     private @NotNull CompletableFuture<@Nullable Void> handleSaveQuest(@NotNull Player player, @NotNull ResultType questResultType, @NotNull QuestModel questModel) {
         List<CompletableFuture<ResultType>> futures = new ArrayList<>();
         for (AbstractQuestRequirement requirement : questModel.getRequirements()) {
@@ -120,6 +161,14 @@ public class QuestAcceptOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error while accepting quest", e));
     }
 
+    /**
+     * Handles the error. The player will receive a message and the error will be logged.
+     *
+     * @param player    The player who executed the command.
+     * @param message   The message to send to the player.
+     * @param throwable The throwable to log.
+     * @return null.
+     */
     private @Nullable Void handleError(@NotNull Player player, @NotNull String message, @NotNull Throwable throwable) {
         player.sendMessage(message);
         PlayLegendQuest.getLog().log(Level.SEVERE, message + ": " + throwable.getMessage(), throwable);

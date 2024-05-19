@@ -55,6 +55,12 @@ public class QuestRequirementOperation implements QuestOperation {
         return false;
     }
 
+    /**
+     * Sends the requirement info to the player.
+     *
+     * @param player The player who executed the command.
+     * @param args   The arguments of the command.
+     */
     private void requirementInfo(@NotNull Player player, String @NotNull [] args) {
         if (!Maths.isDataType(args[2], Long.class)) {
             languageService.sendTranslatedMessage(player, "invalid_quest_input");
@@ -67,6 +73,12 @@ public class QuestRequirementOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error while searching for quest requirement", e));
     }
 
+    /**
+     * Handles the requirement info. If the requirement is null the player will receive a message, that the requirement does not exist.
+     *
+     * @param player                   The player who executed the command.
+     * @param abstractQuestRequirement The quest requirement.
+     */
     private void handleRequirementInfo(@NotNull Player player, @Nullable AbstractQuestRequirement abstractQuestRequirement) {
         if (abstractQuestRequirement == null) {
             languageService.sendTranslatedMessage(player, "quest_requirement_not_exist");
@@ -75,6 +87,12 @@ public class QuestRequirementOperation implements QuestOperation {
         abstractQuestRequirement.sendInfo(player, languageService);
     }
 
+    /**
+     * Removes a requirement from a quest.
+     *
+     * @param player The player who executed the command.
+     * @param args   The arguments of the command.
+     */
     private void removeRequirement(@NotNull Player player, String @NotNull [] args) {
         if (!Maths.isDataType(args[3], Long.class)) {
             languageService.sendTranslatedMessage(player, "invalid_quest_input");
@@ -89,6 +107,14 @@ public class QuestRequirementOperation implements QuestOperation {
                 .exceptionally(throwable -> handleError(player, "Error while searching for quest", throwable));
     }
 
+    /**
+     * Handles the removal of a requirement from a quest. If the quest does not exist the player will receive a message.
+     *
+     * @param player        The player who executed the command.
+     * @param questModel    The quest model.
+     * @param requirementId The requirement id.
+     * @return A completable future.
+     */
     private @NotNull CompletableFuture<@Nullable Void> handleRemoveRequirement(@NotNull Player player, @Nullable QuestModel questModel, @Nonnegative long requirementId) {
         if (questModel == null) {
             languageService.sendTranslatedMessage(player, "quest_not_exist");
@@ -110,6 +136,12 @@ public class QuestRequirementOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error removing requirement from quest", e));
     }
 
+    /**
+     * Adds a requirement to a quest.
+     *
+     * @param player The player who executed the command.
+     * @param args   The arguments of the command.
+     */
     private void addRequirement(@NotNull Player player, String @NotNull [] args) {
         if (!Maths.isDataType(args[4], Integer.class)) {
             languageService.sendTranslatedMessage(player, "invalid_quest_input");
@@ -128,6 +160,15 @@ public class QuestRequirementOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error while finding quest", e));
     }
 
+    /**
+     * Handles the addition of a requirement to a quest. If the quest does not exist the player will receive a message.
+     *
+     * @param player          The player who executed the command.
+     * @param questModel      The quest model.
+     * @param requirementType The requirement type.
+     * @param args            The arguments of the command.
+     * @return A completable future.
+     */
     private @NotNull CompletableFuture<@Nullable Void> handleAddRequirement(@NotNull Player player, @Nullable QuestModel questModel, @NotNull QuestRequirementType requirementType, String @NotNull [] args) {
         if (questModel == null) {
             languageService.sendTranslatedMessage(player, "quest_not_exist");
@@ -149,6 +190,15 @@ public class QuestRequirementOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error while saving requirement", e));
     }
 
+    /**
+     * Handles the saving of a requirement to a quest. If the requirement id is null the player will receive a message.
+     *
+     * @param player        The player who executed the command.
+     * @param requirementId The requirement id.
+     * @param questModel    The quest model.
+     * @param requirement   The requirement.
+     * @return A completable future.
+     */
     private @NotNull CompletableFuture<@Nullable Void> handleSaveRequirement(@NotNull Player player, @Nullable Long requirementId, @NotNull QuestModel questModel, @NotNull AbstractQuestRequirement requirement) {
         if (requirementId == null) {
             languageService.sendTranslatedMessage(player, "quest_requirement_creation_failed");
@@ -161,6 +211,13 @@ public class QuestRequirementOperation implements QuestOperation {
                 .exceptionally(e -> handleError(player, "Error while saving requirement to quest", e));
     }
 
+    /**
+     * Handles the save result. If the result type is success the player will receive a message, that the quest has been updated. If the result type is not success the player will receive an error message.
+     *
+     * @param player       The player who executed the command.
+     * @param resultType   The result type.
+     * @param errorMessage The error message.
+     */
     private void handleSaveResult(@NotNull Player player, @NotNull ResultType resultType, @NotNull String errorMessage) {
         if (resultType == ResultType.SUCCESS) {
             languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
@@ -169,6 +226,14 @@ public class QuestRequirementOperation implements QuestOperation {
         }
     }
 
+    /**
+     * Handles an error. The player will receive a message and the error will be logged.
+     *
+     * @param player    The player who executed the command.
+     * @param message   The message to send to the player.
+     * @param throwable The throwable.
+     * @return null
+     */
     private @Nullable Void handleError(@NotNull Player player, @NotNull String message, @NotNull Throwable throwable) {
         player.sendRichMessage(message);
         PlayLegendQuest.getLog().log(Level.SEVERE, message + ": " + throwable.getMessage(), throwable);
