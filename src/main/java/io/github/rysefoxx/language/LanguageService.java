@@ -1,5 +1,6 @@
 package io.github.rysefoxx.language;
 
+import io.github.rysefoxx.PlayLegendQuest;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -106,8 +107,7 @@ public class LanguageService {
      * @return The translated message.
      */
     public @NotNull String getTranslatedMessage(@NotNull Player player, @NotNull String messageKey) {
-//        Locale locale = PlayLegendPermission.isUnitTest() ? Locale.ENGLISH : player.locale();
-        Locale locale = player.locale();
+        Locale locale = PlayLegendQuest.isUnitTest() ? Locale.ENGLISH : player.locale();
         String languageCode = Language.isLanguageSupported(locale.getLanguage()) ? locale.getLanguage() : Language.ENGLISH.getCode();
         return this.translations.get(languageCode).getOrDefault(messageKey, messageKey);
     }

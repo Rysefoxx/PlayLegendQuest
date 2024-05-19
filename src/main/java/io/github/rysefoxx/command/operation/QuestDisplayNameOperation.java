@@ -6,6 +6,7 @@ import io.github.rysefoxx.enums.ResultType;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.quest.QuestService;
+import io.github.rysefoxx.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -31,7 +32,7 @@ public class QuestDisplayNameOperation implements QuestOperation {
         if (!(sender instanceof Player player)) return false;
 
         String name = args[2];
-        String displayName = args[3];
+        String displayName = StringUtils.join(args, " ", 3);
 
         questService.findByName(name)
                 .thenCompose(questModel -> handleQuestModel(player, questModel, displayName))

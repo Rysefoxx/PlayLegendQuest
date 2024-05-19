@@ -1,12 +1,13 @@
 package io.github.rysefoxx.scoreboard;
 
+import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.quest.QuestModel;
-import io.github.rysefoxx.user.QuestUserModel;
 import io.github.rysefoxx.scoreboard.enums.ScoreboardPredefinedValue;
 import io.github.rysefoxx.scoreboard.impl.QuestScoreboard;
+import io.github.rysefoxx.user.QuestUserModel;
 import io.github.rysefoxx.util.TimeUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -109,6 +110,7 @@ public class ScoreboardService {
      * @param player The player to update the sidebar for.
      */
     private void updateSidebar(@NotNull Player player) {
+        if (PlayLegendQuest.isUnitTest()) return;
         if (!hasScoreboard(player)) {
             create(player);
         }

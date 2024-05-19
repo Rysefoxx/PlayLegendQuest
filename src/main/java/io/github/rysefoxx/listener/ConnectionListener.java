@@ -1,5 +1,6 @@
 package io.github.rysefoxx.listener;
 
+import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.quest.QuestModel;
@@ -25,6 +26,8 @@ public class ConnectionListener implements Listener {
 
     @EventHandler
     private void onJoin(@NotNull PlayerJoinEvent event) {
+        if (PlayLegendQuest.isUnitTest()) return;
+
         Player player = event.getPlayer();
         this.scoreboardService.create(player);
 

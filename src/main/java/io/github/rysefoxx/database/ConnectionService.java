@@ -145,7 +145,7 @@ public class ConnectionService {
         settings.put("hibernate.connection.url", this.dataSource.getJdbcUrl());
         settings.put("hibernate.connection.username", this.dataSource.getUsername());
         settings.put("hibernate.connection.password", this.dataSource.getPassword());
-        settings.put("hibernate.show_sql", "true");
+        settings.put("hibernate.show_sql", "false");
         settings.put("hibernate.format_sql", "true");
         settings.put("hibernate.hbm2ddl.auto", "update");
         settings.put("hibernate.hikari.dataSource", this.dataSource);

@@ -18,6 +18,7 @@ import io.github.rysefoxx.scoreboard.ScoreboardService;
 import io.github.rysefoxx.stats.PlayerStatisticsService;
 import io.github.rysefoxx.user.QuestUserService;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
@@ -34,6 +35,7 @@ import java.util.logging.Logger;
  * @since 16.05.2024
  */
 @Getter
+@NoArgsConstructor
 public class PlayLegendQuest extends JavaPlugin {
 
     private static Logger logger;
@@ -85,6 +87,7 @@ public class PlayLegendQuest extends JavaPlugin {
         this.scoreboardService = new ScoreboardService(this.questUserProgressService, this.languageService);
         this.questUserService = new QuestUserService(this, this.questUserProgressService, this.languageService, this.scoreboardService, this.questService);
     }
+
 
     /**
      * Constructor for unit tests.

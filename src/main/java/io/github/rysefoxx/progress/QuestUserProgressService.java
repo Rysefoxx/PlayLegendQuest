@@ -8,7 +8,6 @@ import io.github.rysefoxx.database.IDatabaseOperation;
 import io.github.rysefoxx.enums.ResultType;
 import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.user.QuestUserModel;
-import lombok.Getter;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;

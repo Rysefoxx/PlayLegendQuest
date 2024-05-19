@@ -44,7 +44,7 @@ public class QuestCreateOperation implements QuestOperation {
 
     private @NotNull CompletableFuture<@Nullable Void> handleQuestModel(@NotNull Player player, @Nullable QuestModel questModel, @NotNull String name) {
         if (questModel != null) {
-            languageService.sendTranslatedMessage(player, "quest_exist");
+            languageService.sendTranslatedMessage(player, "quest_exists");
             return CompletableFuture.completedFuture(null);
         }
 

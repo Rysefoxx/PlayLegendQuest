@@ -23,6 +23,8 @@ public class Maths {
                 Long.parseLong(value);
             } else if (clazz == Double.class) {
                 Double.parseDouble(value);
+            } else if(clazz == Integer.class) {
+                Integer.parseInt(value);
             }
         } catch (NumberFormatException exception) {
             return false;

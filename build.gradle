@@ -1,7 +1,7 @@
 plugins {
     id 'java'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
-    id("xyz.jpenilla.run-paper") version "2.2.4"
+    id 'xyz.jpenilla.run-paper' version '2.2.4'
 }
 
 group = 'io.github.rysefoxx.quest'
@@ -12,7 +12,6 @@ repositories {
     maven {
         url "https://s01.oss.sonatype.org/content/groups/public/"
     }
-    maven { url 'https://jitpack.io' }
     maven { url 'https://repo.papermc.io/repository/maven-public/' }
 }
 
@@ -42,6 +41,6 @@ shadowJar {
 
 tasks {
     runServer {
-        minecraftVersion("1.20.4")
+        minecraftVersion("1.20.2")
     }
 }
