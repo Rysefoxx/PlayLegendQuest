@@ -1,5 +1,6 @@
 package io.github.rysefoxx.quest.impl;
 
+import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.enums.QuestRequirementType;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.progress.QuestUserProgressModel;
@@ -8,6 +9,10 @@ import jakarta.persistence.*;
 import lombok.NoArgsConstructor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnegative;
@@ -19,20 +24,15 @@ import javax.annotation.Nonnegative;
 @Entity
 @NoArgsConstructor
 @DiscriminatorValue("COLLECT")
-public class QuestCollectRequirement extends AbstractQuestRequirement {
+public class QuestCollectRequirement extends AbstractQuestRequirement implements Listener {
 
     @Column(length = 90)
     @Enumerated(EnumType.STRING)
     private Material material;
 
-    public QuestCollectRequirement(@Nonnegative int requiredAmount, @NotNull Material material) {
-        super(requiredAmount, QuestRequirementType.COLLECT);
+    public QuestCollectRequirement(@NotNull PlayLegendQuest plugin, @Nonnegative int requiredAmount, @NotNull Material material) {
+        super(plugin, requiredAmount, QuestRequirementType.COLLECT);
         this.material = material;
-    }
-
-    @Override
-    public boolean isCompleted(@NotNull Player player) {
-        return false;
     }
 
     @Override
@@ -45,6 +45,16 @@ public class QuestCollectRequirement extends AbstractQuestRequirement {
 
     @Override
     public @NotNull String getProgressText(@NotNull QuestUserProgressModel questUserProgressModel) {
-        return getId() + ": " + questUserProgressModel.getProgress() + "/" + getRequiredAmount() + " (" + getQuestRequirementType().toString() + " " + getRequiredAmount() + " " + this.material.toString() + ")";
+        return questUserProgressModel.getProgress() + "/" + getRequiredAmount() + " (" + getQuestRequirementType().toString() + " " + getRequiredAmount() + " " + this.material.toString() + ")";
+    }
+
+    @EventHandler
+    private void onItemPickup(@NotNull EntityPickupItemEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+
+        ItemStack itemStack = event.getItem().getItemStack();
+        if (itemStack.getType() != this.material) return;
+
+        updateProgress(player, itemStack.getAmount());
     }
 }

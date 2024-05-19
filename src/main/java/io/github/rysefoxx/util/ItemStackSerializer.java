@@ -81,7 +81,7 @@ public class ItemStackSerializer {
             List<ItemStack> items = new ArrayList<>(length);
 
             for (int i = 0; i < length; i++)
-                items.set(i, (ItemStack) dataInput.readObject());
+                items.add((ItemStack) dataInput.readObject());
 
             dataInput.close();
             return items;

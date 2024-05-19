@@ -36,7 +36,7 @@ public class QuestModel {
     private String displayName;
 
     @Nullable
-    @Column
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column
@@ -51,7 +51,7 @@ public class QuestModel {
             joinColumns = @JoinColumn(name = "quest_name", referencedColumnName = "name", nullable = false),
             inverseJoinColumns = @JoinColumn(name = "reward_id", referencedColumnName = "id", nullable = false)
     )
-    private List<QuestRewardModel<?>> rewards = new ArrayList<>();
+    private List<QuestRewardModel> rewards = new ArrayList<>();
 
     @OneToMany(mappedBy = "quest", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<QuestUserProgressModel> userProgress = new ArrayList<>();
@@ -72,6 +72,10 @@ public class QuestModel {
         return !this.requirements.isEmpty() && this.duration > 0;
     }
 
+    public boolean hasRequirement(@Nonnegative long requirementId) {
+        return this.requirements.stream().anyMatch(abstractQuestRequirement -> abstractQuestRequirement.getId().equals(requirementId));
+    }
+
     public void sendProgressToUser(@NotNull Player player, @NotNull LanguageService languageService, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
         int completedRequirements = getCompletedRequirementsCount(questUserProgressModels);
         String requirementTranslation = languageService.getTranslatedMessage(player, "quest_info_requirement");
@@ -89,38 +93,27 @@ public class QuestModel {
     }
 
     public @Nonnegative int getCompletedRequirementsCount(@NotNull List<QuestUserProgressModel> questUserProgressModels) {
-        int completedRequirements = 0;
-
-        for (QuestUserProgressModel questUserProgressModel : questUserProgressModels) {
-            AbstractQuestRequirement requirement = getRequirements().stream()
-                    .filter(req -> req.getId().equals(questUserProgressModel.getRequirement().getId()))
-                    .findFirst()
-                    .orElse(null);
-
-            if (requirement == null) continue;
-            if (questUserProgressModel.getProgress() < requirement.getRequiredAmount()) continue;
-
-            completedRequirements++;
-        }
-
-        return completedRequirements;
+        return getRequirements().size() - questUserProgressModels.size();
     }
 
     private @NotNull List<String> getProgressDetails(@NotNull String requirementTranslation, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
         List<String> progressDetails = new ArrayList<>();
 
-        for (QuestUserProgressModel questUserProgressModel : questUserProgressModels) {
+        for (int i = 0; i < questUserProgressModels.size(); i++) {
+            QuestUserProgressModel questUserProgressModel = questUserProgressModels.get(i);
             AbstractQuestRequirement requirement = getRequirements().stream()
                     .filter(req -> req.getId().equals(questUserProgressModel.getRequirement().getId()))
                     .findFirst()
                     .orElse(null);
 
             if (requirement == null) continue;
-
-            progressDetails.add(requirementTranslation + " " + requirement.getProgressText(questUserProgressModel));
+            progressDetails.add(requirementTranslation + " " + (i + 1) + ": " + requirement.getProgressText(questUserProgressModel));
         }
 
         return progressDetails;
     }
 
+    public boolean isCompleted(@NotNull List<QuestUserProgressModel> questUserProgressModels) {
+        return questUserProgressModels.isEmpty() || questUserProgressModels.stream().allMatch(QuestUserProgressModel::isCompleted);
+    }
 }

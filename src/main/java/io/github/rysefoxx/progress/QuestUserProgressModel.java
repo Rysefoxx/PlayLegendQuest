@@ -26,7 +26,7 @@ public class QuestUserProgressModel {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 36)
+    @Column(nullable = false, length = 36, columnDefinition = "VARCHAR(36)")
     private UUID uuid;
 
     @Column(nullable = false)
@@ -42,6 +42,9 @@ public class QuestUserProgressModel {
     @ManyToOne
     @JoinColumn(name = "requirement_id")
     private AbstractQuestRequirement requirement;
+
+    @Column(nullable = false, columnDefinition = "BOOLEAN")
+    private boolean completed;
 
     public QuestUserProgressModel(UUID uuid, LocalDateTime expiration, QuestModel quest, AbstractQuestRequirement requirement) {
         this.uuid = uuid;

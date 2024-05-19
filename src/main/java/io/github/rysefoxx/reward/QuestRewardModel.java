@@ -4,6 +4,7 @@ import io.github.rysefoxx.enums.QuestRewardType;
 import io.github.rysefoxx.quest.QuestModel;
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,30 +18,27 @@ import java.util.List;
 @Getter
 @Setter
 @Entity
+@NoArgsConstructor
 @Table(name = "quest_reward")
-public class QuestRewardModel<T> {
+public class QuestRewardModel {
 
-    @Transient
-    private final T reward;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(nullable = false)
     private Long id;
+
     @Column(name = "quest_reward_type", nullable = false)
     @Enumerated(EnumType.STRING)
     private QuestRewardType questRewardType;
-    @Column(name = "reward", nullable = false)
-    private String rewardString;
-    @ManyToMany(mappedBy = "rewards")
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String reward;
+
+    @ManyToMany(mappedBy = "rewards", fetch = FetchType.EAGER)
     private List<QuestModel> quests = new ArrayList<>();
 
-    public QuestRewardModel(@NotNull QuestRewardType questRewardType, @NotNull T reward, @NotNull String rewardAsString) {
+    public QuestRewardModel(@NotNull QuestRewardType questRewardType, @NotNull String reward) {
         this.questRewardType = questRewardType;
         this.reward = reward;
-        this.rewardString = rewardAsString;
-    }
-
-    public QuestRewardModel() {
-        this.reward = null;
     }
 }

@@ -14,6 +14,7 @@ import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.reward.QuestRewardService;
 import io.github.rysefoxx.scoreboard.ScoreboardService;
 import io.github.rysefoxx.stats.PlayerStatisticsService;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -25,6 +26,7 @@ import java.util.logging.Logger;
  * @author Rysefoxx
  * @since 16.05.2024
  */
+@Getter
 public class PlayLegendQuest extends JavaPlugin {
 
     private static Logger logger;
@@ -52,6 +54,7 @@ public class PlayLegendQuest extends JavaPlugin {
         initializeListeners();
     }
 
+
     @Override
     public void onDisable() {
         this.connectionService.closeConnection();
@@ -64,17 +67,17 @@ public class PlayLegendQuest extends JavaPlugin {
         this.languageService = new LanguageService(this);
 
         this.playerStatisticsService = new PlayerStatisticsService();
-        this.questRewardService = new QuestRewardService();
+        this.questRewardService = new QuestRewardService(this);
         this.questService = new QuestService();
         this.questUserProgressService = new QuestUserProgressService();
-        this.questRequirementService = new QuestRequirementService();
+        this.questRequirementService = new QuestRequirementService(this);
         this.scoreboardService = new ScoreboardService(this.questUserProgressService, this.languageService);
     }
 
     private void initializeCommands() {
         Objects.requireNonNull(getCommand("questreward")).setExecutor(new CommandQuestReward(this.languageService, this.questRewardService));
         Objects.requireNonNull(getCommand("coins")).setExecutor(new CommandCoins(this.languageService, this.playerStatisticsService));
-        Objects.requireNonNull(getCommand("quest")).setExecutor(new CommandQuest(this.questService, this.questRewardService, this.questUserProgressService, this.questRequirementService, this.scoreboardService, this.languageService));
+        Objects.requireNonNull(getCommand("quest")).setExecutor(new CommandQuest(this, this.questService, this.questRewardService, this.questUserProgressService, this.questRequirementService, this.scoreboardService, this.languageService));
     }
 
     private void initializeListeners() {

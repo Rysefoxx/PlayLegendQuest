@@ -51,8 +51,12 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
                     session.merge(toSave);
                 }
                 transaction.commit();
-                cache.put(toSave.getName(), CompletableFuture.completedFuture(toSave));
-                return ResultType.SUCCESS;
+                return this.cache.synchronous().refresh(toSave.getName())
+                        .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
+                        .exceptionally(e -> {
+                            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestModel cache: " + e.getMessage(), e);
+                            return ResultType.ERROR;
+                        }).get();
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to save QuestModel: " + e.getMessage(), e);
@@ -115,7 +119,7 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
     }
 
     public CompletableFuture<QuestModel> findByName(@NotNull String questName) {
-        return cache.get(questName);
+        return this.cache.get(questName);
     }
 
     public @NotNull CompletableFuture<@Nullable AbstractQuestRequirement> findRequirementById(@Nonnegative long requirementId) {
@@ -129,20 +133,20 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
         });
     }
 
-    public @Nullable AbstractQuestRequirement createRequirement(@NotNull QuestRequirementType requirementType, @Nonnegative int requirementAmount, @NotNull String[] args) {
+    public @Nullable AbstractQuestRequirement createRequirement(@NotNull PlayLegendQuest plugin, @NotNull QuestRequirementType requirementType, @Nonnegative int requirementAmount, @NotNull String[] args) {
         String data = args[5];
         return switch (requirementType) {
             case COLLECT -> {
                 Material material = Material.getMaterial(data);
                 if (material == null) yield null;
 
-                yield new QuestCollectRequirement(requirementAmount, material);
+                yield new QuestCollectRequirement(plugin, requirementAmount, material);
             }
             case KILL -> {
                 EntityType entityType = EntityType.fromName(data);
                 if (entityType == null) yield null;
 
-                yield new QuestKillRequirement(requirementAmount, entityType);
+                yield new QuestKillRequirement(plugin, requirementAmount, entityType);
             }
         };
     }

@@ -6,6 +6,7 @@ import io.github.rysefoxx.reward.AbstractQuestReward;
 import io.github.rysefoxx.reward.QuestRewardModel;
 import io.github.rysefoxx.util.ItemStackSerializer;
 import io.github.rysefoxx.util.ItemUtils;
+import io.github.rysefoxx.util.PlayerUtils;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -21,12 +22,14 @@ import java.util.logging.Level;
  */
 public class ItemQuestReward extends AbstractQuestReward<List<ItemStack>> {
 
-    @Override
-    public @NotNull QuestRewardModel<List<ItemStack>> buildQuestRewardModel(@NotNull Player player, @NotNull String[] args) {
-        List<ItemStack> itemStacks = ItemUtils.getFilteredInventory(player);
-        String convertedData = ItemStackSerializer.itemStackListToBase64(itemStacks);
+    public ItemQuestReward(@NotNull PlayLegendQuest plugin) {
+        super(plugin);
+    }
 
-        return new QuestRewardModel<>(QuestRewardType.ITEMS, itemStacks, convertedData);
+    @Override
+    public @NotNull QuestRewardModel buildQuestRewardModel(@NotNull Player player, @NotNull String[] args) {
+        List<ItemStack> itemStacks = ItemUtils.getFilteredInventory(player);
+        return new QuestRewardModel(QuestRewardType.ITEMS, ItemStackSerializer.itemStackListToBase64(itemStacks));
     }
 
     @Override
@@ -46,7 +49,14 @@ public class ItemQuestReward extends AbstractQuestReward<List<ItemStack>> {
     }
 
     @Override
-    public void rewardPlayer(@NotNull Player player, @NotNull List<ItemStack> reward) {
+    public void rewardPlayer(@NotNull Player player, @Nullable List<ItemStack> reward) {
+        if (reward == null) {
+            getLanguageService().sendTranslatedMessage(player, "quest_reward_null");
+            return;
+        }
 
+        for (ItemStack itemStack : reward) {
+            PlayerUtils.addItem(player, itemStack);
+        }
     }
 }

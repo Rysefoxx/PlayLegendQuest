@@ -35,6 +35,7 @@ import java.util.logging.Level;
 @RequiredArgsConstructor
 public class CommandQuest implements CommandExecutor {
 
+    private final PlayLegendQuest plugin;
     private final QuestService questService;
     private final QuestRewardService questRewardService;
     private final QuestUserProgressService questUserProgressService;
@@ -158,31 +159,44 @@ public class CommandQuest implements CommandExecutor {
                     return;
                 }
 
-                this.questService.save(questModel).thenCompose(resultType -> {
-                    if (resultType != ResultType.SUCCESS) {
-                        this.languageService.sendTranslatedMessage(player, "quest_save_failed");
-                        return CompletableFuture.completedFuture(ResultType.ERROR);
+                this.questUserProgressService.isQuestCompleted(player.getUniqueId(), name).thenAccept(isCompleted -> {
+                    if (isCompleted) {
+                        this.languageService.sendTranslatedMessage(player, "quest_already_completed");
+                        return;
                     }
 
-                    List<CompletableFuture<ResultType>> futures = new ArrayList<>();
-                    for (AbstractQuestRequirement requirement : questModel.getRequirements()) {
-                        QuestUserProgressModel questUserProgressModel = new QuestUserProgressModel(player.getUniqueId(), LocalDateTime.now().plusSeconds(questModel.getDuration()), questModel, requirement);
-                        futures.add(this.questUserProgressService.save(questUserProgressModel));
-                    }
+                    this.questService.save(questModel).thenCompose(resultType -> {
+                        if (resultType != ResultType.SUCCESS) {
+                            this.languageService.sendTranslatedMessage(player, "quest_save_failed");
+                            return CompletableFuture.completedFuture(ResultType.ERROR);
+                        }
 
-                    return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                            .thenApply(v -> ResultType.SUCCESS)
-                            .exceptionally(e -> {
-                                player.sendRichMessage("Error while accepting quest");
-                                PlayLegendQuest.getLog().log(Level.SEVERE, "Error while accepting quest: " + e.getMessage(), e);
-                                return ResultType.ERROR;
-                            });
-                }).thenAccept(resultType -> {
-                    this.scoreboardService.update(player);
-                    this.languageService.sendTranslatedMessage(player, "quest_accepted_" + resultType.toString().toLowerCase());
+                        List<CompletableFuture<ResultType>> futures = new ArrayList<>();
+                        for (AbstractQuestRequirement requirement : questModel.getRequirements()) {
+                            QuestUserProgressModel questUserProgressModel = new QuestUserProgressModel(player.getUniqueId(), LocalDateTime.now().plusSeconds(questModel.getDuration()), questModel, requirement);
+                            futures.add(this.questUserProgressService.save(questUserProgressModel));
+                        }
+
+                        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                                .thenApply(v -> ResultType.SUCCESS)
+                                .exceptionally(e -> {
+                                    player.sendRichMessage("Error while accepting quest");
+                                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error while accepting quest: " + e.getMessage(), e);
+                                    return ResultType.ERROR;
+                                });
+                    }).thenAccept(resultType -> {
+                        this.scoreboardService.update(player);
+                        this.languageService.sendTranslatedMessage(player, "quest_accepted_" + resultType.toString().toLowerCase());
+
+                    }).exceptionally(e -> {
+                        player.sendRichMessage("Error while accepting quest");
+                        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while accepting quest: " + e.getMessage(), e);
+                        return null;
+                    });
+
                 }).exceptionally(e -> {
-                    player.sendRichMessage("Error while accepting quest");
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error while accepting quest: " + e.getMessage(), e);
+                    player.sendRichMessage("Error while checking if quest is completed");
+                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error while checking if quest is completed: " + e.getMessage(), e);
                     return null;
                 });
 
@@ -191,6 +205,7 @@ public class CommandQuest implements CommandExecutor {
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress: " + e.getMessage(), e);
                 return null;
             });
+
         }).exceptionally(e -> {
             player.sendRichMessage("Error while searching for quest");
             PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest: " + e.getMessage(), e);
@@ -220,7 +235,7 @@ public class CommandQuest implements CommandExecutor {
 
                 questUserProgressModel.getQuest().getUserProgress().remove(questUserProgressModel);
 
-                this.questUserProgressService.delete(player.getUniqueId()).thenAccept(resultType -> {
+                this.questUserProgressService.deleteQuest(player.getUniqueId(), name).thenAccept(resultType -> {
                     this.scoreboardService.update(player);
                     this.languageService.sendTranslatedMessage(player, "quest_canceled_" + resultType.toString().toLowerCase());
                 }).exceptionally(e -> {
@@ -321,7 +336,7 @@ public class CommandQuest implements CommandExecutor {
             }
 
             int requiredAmount = Integer.parseInt(args[4]);
-            AbstractQuestRequirement requirement = this.questService.createRequirement(requirementType, requiredAmount, args);
+            AbstractQuestRequirement requirement = this.questService.createRequirement(this.plugin, requirementType, requiredAmount, args);
 
             if (requirement == null) {
                 this.languageService.sendTranslatedMessage(player, "quest_requirement_creation_failed");
@@ -477,8 +492,8 @@ public class CommandQuest implements CommandExecutor {
 
             questModel.setDescription(description);
             this.questService.save(questModel).thenAccept(resultType -> {
-                this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
                 this.scoreboardService.update(player);
+                this.languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
             }).exceptionally(e -> {
                 player.sendRichMessage("Error while saving description for quest");
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Error saving description for quest: " + e.getMessage(), e);

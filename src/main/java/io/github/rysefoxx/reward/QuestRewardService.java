@@ -7,6 +7,7 @@ import io.github.rysefoxx.database.ConnectionService;
 import io.github.rysefoxx.database.IDatabaseOperation;
 import io.github.rysefoxx.enums.QuestRewardType;
 import io.github.rysefoxx.enums.ResultType;
+import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.reward.impl.CoinQuestReward;
 import io.github.rysefoxx.reward.impl.ExperienceQuestReward;
 import io.github.rysefoxx.reward.impl.ItemQuestReward;
@@ -18,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -27,30 +29,31 @@ import java.util.logging.Level;
  * @author Rysefoxx
  * @since 16.05.2024
  */
-public class QuestRewardService implements IDatabaseOperation<QuestRewardModel<?>, Long> {
+public class QuestRewardService implements IDatabaseOperation<QuestRewardModel, Long> {
 
     private final SessionFactory sessionFactory;
     private final HashMap<QuestRewardType, AbstractQuestReward<?>> rewards = new HashMap<>();
-    private final AsyncLoadingCache<Long, QuestRewardModel<?>> cache;
+    private final AsyncLoadingCache<Long, QuestRewardModel> cache;
 
-    public QuestRewardService() {
+    public QuestRewardService(@NotNull PlayLegendQuest plugin) {
         this.sessionFactory = ConnectionService.getSessionFactory();
 
         this.cache = Caffeine.newBuilder()
                 .expireAfterAccess(15, TimeUnit.MINUTES)
                 .buildAsync(this::getQuestReward);
 
-        loadAll();
+        loadAll(plugin);
+        register();
     }
 
-    private void loadAll() {
-        this.rewards.put(QuestRewardType.ITEMS, new ItemQuestReward());
-        this.rewards.put(QuestRewardType.COINS, new CoinQuestReward());
-        this.rewards.put(QuestRewardType.EXPERIENCE, new ExperienceQuestReward());
+    private void loadAll(@NotNull PlayLegendQuest plugin) {
+        this.rewards.put(QuestRewardType.ITEMS, new ItemQuestReward(plugin));
+        this.rewards.put(QuestRewardType.COINS, new CoinQuestReward(plugin));
+        this.rewards.put(QuestRewardType.EXPERIENCE, new ExperienceQuestReward(plugin));
     }
 
     @Override
-    public CompletableFuture<@NotNull ResultType> save(@NotNull QuestRewardModel<?> questRewardModel) {
+    public CompletableFuture<@NotNull ResultType> save(@NotNull QuestRewardModel questRewardModel) {
         return CompletableFuture.supplyAsync(() -> {
             Transaction transaction = null;
             try (Session session = sessionFactory.openSession()) {
@@ -61,8 +64,12 @@ public class QuestRewardService implements IDatabaseOperation<QuestRewardModel<?
                     session.merge(questRewardModel);
                 }
                 transaction.commit();
-                PlayLegendQuest.getLog().info("QuestRewardModel successfully saved with ID: " + questRewardModel.getId());
-                return ResultType.SUCCESS;
+                return this.cache.synchronous().refresh(questRewardModel.getId())
+                        .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
+                        .exceptionally(e -> {
+                            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestRewardModel cache: " + e.getMessage(), e);
+                            return ResultType.ERROR;
+                        }).get();
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to save QuestRewardModel: " + e.getMessage(), e);
@@ -78,13 +85,12 @@ public class QuestRewardService implements IDatabaseOperation<QuestRewardModel<?
             try (Session session = sessionFactory.openSession()) {
                 transaction = session.beginTransaction();
 
-                QuestRewardModel<?> questRewardModel = session.get(QuestRewardModel.class, id);
+                QuestRewardModel questRewardModel = session.get(QuestRewardModel.class, id);
                 if (questRewardModel == null) return ResultType.NO_ROWS_AFFECTED;
 
                 session.remove(questRewardModel);
                 transaction.commit();
                 this.cache.synchronous().invalidate(id);
-                PlayLegendQuest.getLog().info("QuestRewardModel successfully deleted.");
                 return ResultType.SUCCESS;
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
@@ -100,14 +106,13 @@ public class QuestRewardService implements IDatabaseOperation<QuestRewardModel<?
             try (Session session = sessionFactory.openSession()) {
                 transaction = session.beginTransaction();
 
-                QuestRewardModel<?> questRewardModel = session.get(QuestRewardModel.class, id);
+                QuestRewardModel questRewardModel = session.get(QuestRewardModel.class, id);
                 if (questRewardModel == null) return ResultType.NO_ROWS_AFFECTED;
 
-                questRewardModel.setRewardString(newReward);
+                questRewardModel.setReward(newReward);
                 questRewardModel.setQuestRewardType(type);
                 session.merge(questRewardModel);
                 transaction.commit();
-                PlayLegendQuest.getLog().info("QuestRewardModel successfully updated.");
                 return ResultType.SUCCESS;
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
@@ -117,11 +122,10 @@ public class QuestRewardService implements IDatabaseOperation<QuestRewardModel<?
         });
     }
 
-    private CompletableFuture<@Nullable QuestRewardModel<?>> getQuestReward(@NotNull Long id, @NotNull Executor executor) {
+    private CompletableFuture<@Nullable QuestRewardModel> getQuestReward(@NotNull Long id, @NotNull Executor executor) {
         return CompletableFuture.supplyAsync(() -> {
             try (Session session = sessionFactory.openSession()) {
-                QuestRewardModel<?> questRewardModel = session.get(QuestRewardModel.class, id);
-                return questRewardModel;
+                return session.get(QuestRewardModel.class, id);
             } catch (Exception e) {
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to find QuestRewardModel: " + e.getMessage(), e);
                 return null;
@@ -129,7 +133,7 @@ public class QuestRewardService implements IDatabaseOperation<QuestRewardModel<?
         }, executor);
     }
 
-    public CompletableFuture<@Nullable QuestRewardModel<?>> findById(long id) {
+    public CompletableFuture<@Nullable QuestRewardModel> findById(long id) {
         return this.cache.get(id);
     }
 
@@ -142,7 +146,7 @@ public class QuestRewardService implements IDatabaseOperation<QuestRewardModel<?
      * @param <T>    The type of the reward.
      * @return The QuestRewardModel.
      */
-    public @Nullable <T> QuestRewardModel<T> buildQuestRewardModel(@NotNull QuestRewardType type, @NotNull Player player, @NotNull String[] args) {
+    public @Nullable <T> QuestRewardModel buildQuestRewardModel(@NotNull QuestRewardType type, @NotNull Player player, @NotNull String[] args) {
         AbstractQuestReward<?> questReward = rewards.get(type);
         if (questReward == null) return null;
 
@@ -168,21 +172,49 @@ public class QuestRewardService implements IDatabaseOperation<QuestRewardModel<?
     }
 
     /**
-     * Rewards the player with the given reward.
+     * Rewards the player with the given rewards.
      *
-     * @param type   The type of the reward.
-     * @param player The player to reward.
-     * @param reward The reward to give.
-     * @param <T>    The type of the reward.
-     * @return If the player was rewarded.
+     * @param player     The player to reward.
+     * @param questModel The quest model to reward the player with.
+     * @param <T>        The type of the reward.
      */
-    public <T> boolean rewardPlayer(@NotNull QuestRewardType type, @NotNull Player player, @NotNull T reward) {
-        AbstractQuestReward<?> questReward = rewards.get(type);
-        if (questReward == null) return false;
-        if (!type.getClassType().isInstance(reward)) return false;
+    public <T> void rewardPlayer(@NotNull Player player, @NotNull QuestModel questModel) {
+        for (QuestRewardModel reward : questModel.getRewards()) {
+            QuestRewardType type = reward.getQuestRewardType();
+            AbstractQuestReward<?> questReward = rewards.get(type);
+            if (questReward == null) continue;
 
-        AbstractQuestReward<T> typedReward = (AbstractQuestReward<T>) questReward;
-        typedReward.rewardPlayer(player, reward);
-        return true;
+            AbstractQuestReward<T> typedReward = (AbstractQuestReward<T>) questReward;
+            typedReward.rewardPlayer(player, typedReward.rewardStringToGeneric(reward.getReward()));
+        }
+    }
+
+    private CompletableFuture<List<QuestRewardModel>> findAll() {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Session session = sessionFactory.openSession()) {
+                return session.createQuery("FROM QuestRewardModel", QuestRewardModel.class).list();
+            } catch (Exception e) {
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to find all QuestRewardModel: " + e.getMessage(), e);
+                return null;
+            }
+        });
+    }
+
+    private void register() {
+        findAll().thenAccept(questRewardModels -> {
+            if (questRewardModels == null) return;
+
+            for (QuestRewardModel questRewardModel : questRewardModels) {
+                if (questRewardModel == null) continue;
+
+                AbstractQuestReward<?> abstractQuestReward = rewards.get(questRewardModel.getQuestRewardType());
+                if (abstractQuestReward == null) continue;
+
+                abstractQuestReward.register();
+            }
+        }).exceptionally(e -> {
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to register listeners: " + e.getMessage(), e);
+            return null;
+        });
     }
 }

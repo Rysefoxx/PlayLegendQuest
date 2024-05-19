@@ -132,7 +132,7 @@ public class CommandQuestReward implements CommandExecutor {
             return;
         }
 
-        QuestRewardModel<?> questRewardModel = this.questRewardService.buildQuestRewardModel(type, player, args);
+        QuestRewardModel questRewardModel = this.questRewardService.buildQuestRewardModel(type, player, args);
 
         if (questRewardModel == null) {
             this.languageService.sendTranslatedMessage(player, "quest_reward_build_failed");

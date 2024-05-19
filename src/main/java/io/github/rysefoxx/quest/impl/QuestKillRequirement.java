@@ -1,5 +1,6 @@
 package io.github.rysefoxx.quest.impl;
 
+import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.enums.QuestRequirementType;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.progress.QuestUserProgressModel;
@@ -8,6 +9,9 @@ import jakarta.persistence.*;
 import lombok.NoArgsConstructor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnegative;
@@ -19,20 +23,15 @@ import javax.annotation.Nonnegative;
 @Entity
 @NoArgsConstructor
 @DiscriminatorValue("KILL")
-public class QuestKillRequirement extends AbstractQuestRequirement {
+public class QuestKillRequirement extends AbstractQuestRequirement implements Listener {
 
     @Column(name = "entity_type", length = 90)
     @Enumerated(EnumType.STRING)
     private EntityType entityType;
 
-    public QuestKillRequirement(@Nonnegative int requiredAmount, @NotNull EntityType entityType) {
-        super(requiredAmount, QuestRequirementType.KILL);
+    public QuestKillRequirement(@NotNull PlayLegendQuest plugin, @Nonnegative int requiredAmount, @NotNull EntityType entityType) {
+        super(plugin, requiredAmount, QuestRequirementType.KILL);
         this.entityType = entityType;
-    }
-
-    @Override
-    public boolean isCompleted(@NotNull Player player) {
-        return false;
     }
 
     @Override
@@ -45,6 +44,14 @@ public class QuestKillRequirement extends AbstractQuestRequirement {
 
     @Override
     public @NotNull String getProgressText(@NotNull QuestUserProgressModel questUserProgressModel) {
-        return getId() + ": " + questUserProgressModel.getProgress() + "/" + getRequiredAmount() + " (" + getQuestRequirementType().toString() + " " + getRequiredAmount() + " " + this.entityType.toString() + ")";
+        return questUserProgressModel.getProgress() + "/" + getRequiredAmount() + " (" + getQuestRequirementType().toString() + " " + getRequiredAmount() + " " + this.entityType.toString() + ")";
+    }
+
+    @EventHandler
+    private void onEntityDeath(@NotNull EntityDeathEvent event) {
+        if (event.getEntityType() != this.entityType) return;
+        if (!(event.getEntity().getKiller() instanceof Player player)) return;
+
+        updateProgress(player, 1);
     }
 }

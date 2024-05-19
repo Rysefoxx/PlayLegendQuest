@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS legend.quest_reward_relation
     FOREIGN KEY (reward_id) REFERENCES legend.quest_reward (id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS quest_user_progress
+CREATE TABLE IF NOT EXISTS legend.quest_user_progress
 (
     id                     BIGINT AUTO_INCREMENT PRIMARY KEY NOT NULL,
     quest_requirement_type VARCHAR(50)                       NOT NULL,
@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS quest_user_progress
     requirement_id         BIGINT                            NOT NULL,
     progress               INT                               NOT NULL,
     expiration             DATETIME                          NOT NULL,
+    completed              BOOLEAN                           NOT NULL,
     FOREIGN KEY (quest_name) REFERENCES quest_model (name) ON DELETE CASCADE,
     FOREIGN KEY (uuid) REFERENCES player_stats (uuid) ON DELETE CASCADE,
     FOREIGN KEY (requirement_id) REFERENCES quest_requirement (id) ON DELETE CASCADE

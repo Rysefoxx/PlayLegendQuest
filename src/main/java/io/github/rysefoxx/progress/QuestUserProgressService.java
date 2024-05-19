@@ -6,6 +6,7 @@ import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.database.ConnectionService;
 import io.github.rysefoxx.database.IDatabaseOperation;
 import io.github.rysefoxx.enums.ResultType;
+import lombok.Getter;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -25,6 +26,7 @@ import java.util.logging.Level;
 public class QuestUserProgressService implements IDatabaseOperation<QuestUserProgressModel, UUID> {
 
     private final SessionFactory sessionFactory;
+    @Getter
     private final AsyncLoadingCache<UUID, List<QuestUserProgressModel>> cache;
 
     public QuestUserProgressService() {
@@ -46,8 +48,12 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
                     session.merge(toSave);
                 }
                 transaction.commit();
-                cache.synchronous().invalidate(toSave.getUuid());
-                return ResultType.SUCCESS;
+                return this.cache.synchronous().refresh(toSave.getUuid())
+                        .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
+                        .exceptionally(e -> {
+                            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestUserProgressModel cache: " + e.getMessage(), e);
+                            return ResultType.ERROR;
+                        }).get();
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to save QuestUserProgressModel: " + e.getMessage(), e);
@@ -83,10 +89,42 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
         });
     }
 
+    public CompletableFuture<@NotNull ResultType> deleteQuest(@NotNull UUID uuid, @NotNull String questName) {
+        return CompletableFuture.supplyAsync(() -> {
+            Transaction transaction = null;
+            try (Session session = sessionFactory.openSession()) {
+                transaction = session.beginTransaction();
+
+                List<QuestUserProgressModel> questUserProgressModels = session.createQuery("FROM QuestUserProgressModel WHERE uuid = :uuid AND quest.name = :questName", QuestUserProgressModel.class)
+                        .setParameter("uuid", uuid)
+                        .setParameter("questName", questName)
+                        .list();
+                if (questUserProgressModels.isEmpty()) return ResultType.NO_ROWS_AFFECTED;
+
+                for (QuestUserProgressModel questUserProgressModel : questUserProgressModels) {
+                    questUserProgressModel.getQuest().getUserProgress().remove(questUserProgressModel);
+                    session.remove(questUserProgressModel);
+                }
+                transaction.commit();
+
+                return this.cache.synchronous().refresh(uuid)
+                        .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
+                        .exceptionally(e -> {
+                            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestUserProgressModel cache: " + e.getMessage(), e);
+                            return ResultType.ERROR;
+                        }).get();
+            } catch (Exception e) {
+                if (transaction != null) transaction.rollback();
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to delete QuestUserProgressModel: " + e.getMessage(), e);
+                return ResultType.ERROR;
+            }
+        });
+    }
+
     private CompletableFuture<List<QuestUserProgressModel>> getQuestUserProgressModels(@NotNull UUID uuid, @NotNull Executor executor) {
         return CompletableFuture.supplyAsync(() -> {
             try (Session session = sessionFactory.openSession()) {
-                return session.createQuery("FROM QuestUserProgressModel WHERE uuid = :uuid", QuestUserProgressModel.class)
+                return session.createQuery("FROM QuestUserProgressModel WHERE uuid = :uuid AND completed = false", QuestUserProgressModel.class)
                         .setParameter("uuid", uuid)
                         .list();
             } catch (Exception e) {
@@ -102,5 +140,23 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
 
     public CompletableFuture<Boolean> hasQuest(@NotNull UUID uuid) {
         return findByUuid(uuid).thenApply(questUserProgressModels -> !questUserProgressModels.isEmpty());
+    }
+
+    public CompletableFuture<Boolean> isQuestCompleted(@NotNull UUID uuid, @NotNull String questName) {
+        return CompletableFuture.supplyAsync(() -> {
+            try (Session session = sessionFactory.openSession()) {
+                return !session.createQuery("FROM QuestUserProgressModel WHERE uuid = :uuid AND quest.name = :questName AND completed = true", QuestUserProgressModel.class)
+                        .setParameter("uuid", uuid)
+                        .setParameter("questName", questName)
+                        .list()
+                        .isEmpty();
+            } catch (Exception e) {
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to check if quest is completed: " + e.getMessage(), e);
+                return false;
+            }
+        }).exceptionally(e -> {
+            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to check if quest is completed: " + e.getMessage(), e);
+            return false;
+        });
     }
 }
