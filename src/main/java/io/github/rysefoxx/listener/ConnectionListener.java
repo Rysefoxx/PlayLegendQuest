@@ -34,7 +34,7 @@ public class ConnectionListener implements Listener {
                 return;
             }
 
-            QuestModel questModel = questUserProgressModels.getFirst().getQuest();
+            QuestModel questModel = questUserProgressModels.get(0).getQuest();
             questModel.sendProgressToUser(player, this.languageService, questUserProgressModels);
         });
     }

@@ -49,7 +49,7 @@ public class SignChangeListener implements Listener {
                     return;
                 }
 
-                QuestModel questModel = questUserProgressModels.getFirst().getQuest();
+                QuestModel questModel = questUserProgressModels.get(0).getQuest();
                 event.line(1, Component.text(questModel.getName()));
                 event.line(3, Component.text(questModel.getCompletedRequirementsCount(questUserProgressModels) + "/" + questModel.getRequirements().size()));
             });

@@ -89,7 +89,7 @@ public abstract class AbstractQuestRequirement implements Listener {
             return CompletableFuture.completedFuture(null);
         }
 
-        QuestModel questModel = questUserProgressModels.getFirst().getQuest();
+        QuestModel questModel = questUserProgressModels.get(0).getQuest();
         if (!questModel.hasRequirement(getId())) {
             return CompletableFuture.completedFuture(null);
         }

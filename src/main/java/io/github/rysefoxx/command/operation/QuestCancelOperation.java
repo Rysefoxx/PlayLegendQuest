@@ -61,7 +61,7 @@ public class QuestCancelOperation implements QuestOperation {
             return CompletableFuture.completedFuture(null);
         }
 
-        QuestUserProgressModel questUserProgressModel = questUserProgressModels.getFirst();
+        QuestUserProgressModel questUserProgressModel = questUserProgressModels.get(0);
         QuestModel quest = questUserProgressModel.getQuest();
 
         if (!quest.getName().equalsIgnoreCase(name)) {

@@ -5,8 +5,12 @@ import io.github.rysefoxx.enums.QuestRequirementType;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.quest.AbstractQuestRequirement;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.NoArgsConstructor;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -20,7 +24,7 @@ import javax.annotation.Nonnegative;
  * @author Rysefoxx
  * @since 17.05.2024
  */
-@Entity
+@jakarta.persistence.Entity
 @NoArgsConstructor
 @DiscriminatorValue("KILL")
 public class QuestKillRequirement extends AbstractQuestRequirement implements Listener {
@@ -50,7 +54,8 @@ public class QuestKillRequirement extends AbstractQuestRequirement implements Li
     @EventHandler
     private void onEntityDeath(@NotNull EntityDeathEvent event) {
         if (event.getEntityType() != this.entityType) return;
-        if (!(event.getEntity().getKiller() instanceof Player player)) return;
+        Entity entity = event.getEntity();
+        if(!(entity instanceof Player player)) return;
 
         updateProgress(player, 1);
     }

@@ -121,7 +121,7 @@ public class ScoreboardService {
         }
 
         this.questUserProgressService.findByUuid(player.getUniqueId()).thenAccept(questUserProgressModels -> {
-            QuestModel questModel = questUserProgressModels.isEmpty() ? null : questUserProgressModels.getFirst().getQuest();
+            QuestModel questModel = questUserProgressModels.isEmpty() ? null : questUserProgressModels.get(0).getQuest();
             Map<String, ScoreboardEntry> lines = abstractScoreboard.getLines(player, this.languageService);
 
             for (Map.Entry<String, ScoreboardEntry> entry : lines.entrySet()) {

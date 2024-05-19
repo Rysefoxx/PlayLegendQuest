@@ -102,7 +102,7 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
                         .list();
                 if (questUserProgressModels.isEmpty()) return ResultType.NO_ROWS_AFFECTED;
 
-                QuestModel questModel = questUserProgressModels.getFirst().getQuest();
+                QuestModel questModel = questUserProgressModels.get(0).getQuest();
                 questModel.getUserProgress().removeAll(questUserProgressModels);
 
                 for (QuestUserProgressModel questUserProgressModel : questUserProgressModels) {

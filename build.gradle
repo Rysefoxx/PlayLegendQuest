@@ -1,6 +1,5 @@
 plugins {
     id 'java'
-    id 'io.papermc.paperweight.userdev' version '1.7.1'
     id 'com.github.johnrengelman.shadow' version '8.1.1'
     id("xyz.jpenilla.run-paper") version "2.2.4"
 }
@@ -13,18 +12,28 @@ repositories {
     maven {
         url "https://s01.oss.sonatype.org/content/groups/public/"
     }
+    maven { url 'https://jitpack.io' }
+    maven { url 'https://repo.papermc.io/repository/maven-public/' }
 }
 
 dependencies {
-    paperweight.paperDevBundle("1.20.6-R0.1-SNAPSHOT")
+    compileOnly("io.papermc.paper:paper-api:1.20.2-R0.1-SNAPSHOT")
 
     implementation 'com.zaxxer:HikariCP:5.1.0'
     implementation 'org.mariadb.jdbc:mariadb-java-client:3.3.3'
     implementation 'com.github.ben-manes.caffeine:caffeine:3.1.8'
     implementation 'org.hibernate:hibernate-core:6.5.1.Final'
+    implementation 'commons-io:commons-io:2.14.0'
 
     annotationProcessor 'org.projectlombok:lombok:1.18.30'
     implementation 'org.projectlombok:lombok:1.18.30'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.3'
+    testImplementation 'com.github.seeseemelk:MockBukkit-v1.19:2.29.0'
+}
+
+test {
+    useJUnitPlatform()
 }
 
 shadowJar {
@@ -33,6 +42,6 @@ shadowJar {
 
 tasks {
     runServer {
-        minecraftVersion("1.20.6")
+        minecraftVersion("1.20.4")
     }
 }

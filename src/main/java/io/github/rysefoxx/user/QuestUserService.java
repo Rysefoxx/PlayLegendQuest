@@ -138,6 +138,8 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
     }
 
     private void expirationScheduler(@NotNull PlayLegendQuest plugin) {
+        if(PlayLegendQuest.isUnitTest()) return;
+
         Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> cache.synchronous().asMap().forEach(this::handleQuestExpiration), 0, 1, TimeUnit.SECONDS);
     }
 
@@ -150,7 +152,7 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
                     if (questUserProgressModels == null || questUserProgressModels.isEmpty())
                         return CompletableFuture.completedFuture(null);
 
-                    QuestUserProgressModel questUserProgressModel = questUserProgressModels.getFirst();
+                    QuestUserProgressModel questUserProgressModel = questUserProgressModels.get(0);
                     QuestModel quest = questUserProgressModel.getQuest();
 
                     quest.getUserProgress().remove(questUserProgressModel);

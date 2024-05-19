@@ -19,9 +19,13 @@ import io.github.rysefoxx.stats.PlayerStatisticsService;
 import io.github.rysefoxx.user.QuestUserService;
 import lombok.Getter;
 import org.bukkit.Bukkit;
+import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.java.JavaPluginLoader;
+import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.util.Objects;
 import java.util.logging.Logger;
 
@@ -33,6 +37,8 @@ import java.util.logging.Logger;
 public class PlayLegendQuest extends JavaPlugin {
 
     private static Logger logger;
+    @Getter
+    private static boolean unitTest;
 
     private ConnectionService connectionService;
     private LanguageService languageService;
@@ -78,6 +84,20 @@ public class PlayLegendQuest extends JavaPlugin {
         this.questRequirementService = new QuestRequirementService(this);
         this.scoreboardService = new ScoreboardService(this.questUserProgressService, this.languageService);
         this.questUserService = new QuestUserService(this, this.questUserProgressService, this.languageService, this.scoreboardService, this.questService);
+    }
+
+    /**
+     * Constructor for unit tests.
+     *
+     * @param loader      The plugin loader.
+     * @param description The plugin description.
+     * @param dataFolder  The data folder.
+     * @param file        The plugin file.
+     */
+    @SuppressWarnings("all")
+    protected PlayLegendQuest(@NotNull JavaPluginLoader loader, @NotNull PluginDescriptionFile description, @NotNull File dataFolder, @NotNull File file) {
+        super(loader, description, dataFolder, file);
+        unitTest = true;
     }
 
     private void initializeCommands() {

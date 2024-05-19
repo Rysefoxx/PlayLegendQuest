@@ -44,7 +44,7 @@ public class QuestInfoOperation implements QuestOperation {
             return CompletableFuture.completedFuture(null);
         }
 
-        QuestModel questModel = questUserProgressModels.getFirst().getQuest();
+        QuestModel questModel = questUserProgressModels.get(0).getQuest();
         questModel.sendProgressToUser(player, languageService, questUserProgressModels);
         return CompletableFuture.completedFuture(null);
     }
