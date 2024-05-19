@@ -23,7 +23,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Properties;
@@ -177,20 +176,6 @@ public class ConnectionService {
                 PlayerStatisticsModel.class,
                 QuestUserModel.class
         );
-    }
-
-
-    /**
-     * @param query The query to execute.
-     * @return the prepared statement or null if an error occurred.
-     */
-    public @Nullable PreparedStatement prepareStatement(@Nullable Connection connection, @NotNull String query) throws SQLException {
-        if (connection == null) {
-            this.plugin.getLogger().severe("The connection for the prepared statement is null!");
-            return null;
-        }
-
-        return connection.prepareStatement(query);
     }
 
     /**
