@@ -6,12 +6,21 @@ import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.database.ConnectionService;
 import io.github.rysefoxx.database.IDatabaseOperation;
 import io.github.rysefoxx.enums.ResultType;
+import io.github.rysefoxx.language.LanguageService;
+import io.github.rysefoxx.progress.QuestUserProgressModel;
+import io.github.rysefoxx.progress.QuestUserProgressService;
+import io.github.rysefoxx.quest.QuestModel;
+import io.github.rysefoxx.quest.QuestService;
+import io.github.rysefoxx.scoreboard.ScoreboardService;
 import lombok.Getter;
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.jetbrains.annotations.NotNull;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
@@ -27,12 +36,21 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
     private final SessionFactory sessionFactory;
     @Getter
     private final AsyncLoadingCache<Long, QuestUserModel> cache;
+    private final QuestUserProgressService questUserProgressService;
+    private final LanguageService languageService;
+    private final ScoreboardService scoreboardService;
+    private final QuestService questService;
 
-    public QuestUserService() {
+    public QuestUserService(@NotNull PlayLegendQuest plugin, @NotNull QuestUserProgressService questUserProgressService, @NotNull LanguageService languageService, @NotNull ScoreboardService scoreboardService, @NotNull QuestService questService) {
+        this.questUserProgressService = questUserProgressService;
+        this.languageService = languageService;
+        this.scoreboardService = scoreboardService;
+        this.questService = questService;
         this.sessionFactory = ConnectionService.getSessionFactory();
         this.cache = Caffeine.newBuilder()
                 .expireAfterAccess(15, TimeUnit.MINUTES)
                 .buildAsync(this::getQuestUserModel);
+        expirationScheduler(plugin);
     }
 
     @Override
@@ -117,5 +135,45 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
                 return null;
             }
         }, executor);
+    }
+
+    private void expirationScheduler(@NotNull PlayLegendQuest plugin) {
+        Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> {
+            cache.synchronous().asMap().forEach((id, questUserModel) -> {
+                if (questUserModel.getExpiration().isAfter(LocalDateTime.now())) return;
+                Player player = Bukkit.getPlayer(questUserModel.getUuid());
+
+                this.questUserProgressService.findByUuid(questUserModel.getUuid()).thenAccept(questUserProgressModels -> {
+                    if (questUserProgressModels == null || questUserProgressModels.isEmpty()) return;
+
+                    QuestUserProgressModel questUserProgressModel = questUserProgressModels.getFirst();
+                    QuestModel quest = questUserProgressModel.getQuest();
+
+                    quest.getUserProgress().remove(questUserProgressModel);
+                    quest.getUserQuests().removeIf(userModel -> userModel.getUuid().equals(questUserModel.getUuid()));
+
+                    this.cache.synchronous().invalidate(id);
+                    this.questUserProgressService.deleteQuest(questUserModel.getUuid(), quest.getName()).thenCompose(progressResultType -> {
+                        return this.questService.getCache().synchronous().refresh(quest.getName()).thenAccept(unused -> {
+                            if (player == null) return;
+                            this.scoreboardService.update(player);
+                            this.languageService.sendTranslatedMessage(player, "quest_expired_" + progressResultType.toString().toLowerCase());
+                        });
+                    }).exceptionally(e -> {
+                        if (player != null) {
+                            player.sendRichMessage("Error while cancel expired quest");
+                        }
+                        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while cancel expired quest: " + e.getMessage(), e);
+                        return null;
+                    });
+                }).exceptionally(e -> {
+                    if (player != null) {
+                        player.sendRichMessage("Error while searching for quest user progress");
+                    }
+                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress: " + e.getMessage(), e);
+                    return null;
+                });
+            });
+        }, 0, 1, TimeUnit.SECONDS);
     }
 }

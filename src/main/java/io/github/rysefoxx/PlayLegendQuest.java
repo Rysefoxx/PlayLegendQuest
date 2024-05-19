@@ -73,8 +73,8 @@ public class PlayLegendQuest extends JavaPlugin {
         this.questService = new QuestService();
         this.questUserProgressService = new QuestUserProgressService();
         this.questRequirementService = new QuestRequirementService(this);
-        this.questUserService = new QuestUserService();
         this.scoreboardService = new ScoreboardService(this.questUserProgressService, this.languageService);
+        this.questUserService = new QuestUserService(this, this.questUserProgressService, this.languageService, this.scoreboardService, this.questService);
     }
 
     private void initializeCommands() {
