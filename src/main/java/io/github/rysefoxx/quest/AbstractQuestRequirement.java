@@ -97,12 +97,12 @@ public abstract class AbstractQuestRequirement implements Listener {
 
                 if (questUserProgressModel.getProgress() < getRequiredAmount()) return;
                 getLanguageService().sendTranslatedMessage(player, "quest_requirement_done");
+                getScoreboardService().update(player);
 
                 if (!questModel.isCompleted(questUserProgressModels)) return;
                 getLanguageService().sendTranslatedMessage(player, "quest_done");
 
                 getQuestRewardService().rewardPlayer(player, questModel);
-                getScoreboardService().update(player);
             }).exceptionally(e -> {
                 player.sendRichMessage("Error while saving quest progress.");
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Error while saving quest progress: " + e.getMessage(), e);
