@@ -19,6 +19,7 @@ import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -125,7 +126,6 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
         });
     }
 
-
     private CompletableFuture<QuestUserModel> getQuestUserModel(@NotNull Long id, @NotNull Executor executor) {
         return CompletableFuture.supplyAsync(() -> {
             try (Session session = sessionFactory.openSession()) {
@@ -138,13 +138,17 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
     }
 
     private void expirationScheduler(@NotNull PlayLegendQuest plugin) {
-        Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> {
-            cache.synchronous().asMap().forEach((id, questUserModel) -> {
-                if (questUserModel.getExpiration().isAfter(LocalDateTime.now())) return;
-                Player player = Bukkit.getPlayer(questUserModel.getUuid());
+        Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> cache.synchronous().asMap().forEach(this::handleQuestExpiration), 0, 1, TimeUnit.SECONDS);
+    }
 
-                this.questUserProgressService.findByUuid(questUserModel.getUuid()).thenAccept(questUserProgressModels -> {
-                    if (questUserProgressModels == null || questUserProgressModels.isEmpty()) return;
+    private void handleQuestExpiration(@NotNull Long id, @NotNull QuestUserModel questUserModel) {
+        if (questUserModel.getExpiration().isAfter(LocalDateTime.now())) return;
+
+        Player player = Bukkit.getPlayer(questUserModel.getUuid());
+        questUserProgressService.findByUuid(questUserModel.getUuid())
+                .thenCompose(questUserProgressModels -> {
+                    if (questUserProgressModels == null || questUserProgressModels.isEmpty())
+                        return CompletableFuture.completedFuture(null);
 
                     QuestUserProgressModel questUserProgressModel = questUserProgressModels.getFirst();
                     QuestModel quest = questUserProgressModel.getQuest();
@@ -152,28 +156,26 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
                     quest.getUserProgress().remove(questUserProgressModel);
                     quest.getUserQuests().removeIf(userModel -> userModel.getUuid().equals(questUserModel.getUuid()));
 
-                    this.cache.synchronous().invalidate(id);
-                    this.questUserProgressService.deleteQuest(questUserModel.getUuid(), quest.getName()).thenCompose(progressResultType -> {
-                        return this.questService.getCache().synchronous().refresh(quest.getName()).thenAccept(unused -> {
-                            if (player == null) return;
-                            this.scoreboardService.update(player);
-                            this.languageService.sendTranslatedMessage(player, "quest_expired_" + progressResultType.toString().toLowerCase());
-                        });
-                    }).exceptionally(e -> {
-                        if (player != null) {
-                            player.sendRichMessage("Error while cancel expired quest");
-                        }
-                        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while cancel expired quest: " + e.getMessage(), e);
-                        return null;
-                    });
-                }).exceptionally(e -> {
-                    if (player != null) {
-                        player.sendRichMessage("Error while searching for quest user progress");
-                    }
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress: " + e.getMessage(), e);
-                    return null;
-                });
-            });
-        }, 0, 1, TimeUnit.SECONDS);
+                    cache.synchronous().invalidate(id);
+
+                    return questUserProgressService.deleteQuest(questUserModel.getUuid(), quest.getName())
+                            .thenCompose(progressResultType -> questService.getCache().synchronous().refresh(quest.getName()).thenAccept(unused -> notifyPlayerOnExpiration(player, progressResultType)));
+                })
+                .exceptionally(throwable -> handleError(player, throwable));
+    }
+
+    private void notifyPlayerOnExpiration(@Nullable Player player, @NotNull ResultType progressResultType) {
+        if (player == null) return;
+
+        scoreboardService.update(player);
+        languageService.sendTranslatedMessage(player, "quest_expired_" + progressResultType.toString().toLowerCase());
+    }
+
+    private @Nullable Void handleError(@Nullable Player player, @NotNull Throwable throwable) {
+        if (player != null) {
+            player.sendRichMessage("Error while searching for quest user progress");
+        }
+        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress" + ": " + throwable.getMessage(), throwable);
+        return null;
     }
 }
