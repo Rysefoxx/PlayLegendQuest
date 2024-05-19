@@ -233,7 +233,7 @@ public class CommandQuest implements CommandExecutor {
                 }
 
                 QuestUserProgressModel questUserProgressModel = questUserProgressModels.getFirst();
-                if (!questUserProgressModel.getQuest().getName().equals(name)) {
+                if (!questUserProgressModel.getQuest().getName().equalsIgnoreCase(name)) {
                     this.languageService.sendTranslatedMessage(player, "quest_not_active");
                     return;
                 }
