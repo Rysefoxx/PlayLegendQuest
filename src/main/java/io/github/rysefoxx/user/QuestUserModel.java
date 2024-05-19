@@ -1,25 +1,24 @@
-package io.github.rysefoxx.progress;
+package io.github.rysefoxx.user;
 
-import io.github.rysefoxx.quest.AbstractQuestRequirement;
 import io.github.rysefoxx.quest.QuestModel;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
  * @author Rysefoxx
- * @since 17.05.2024
+ * @since 19.05.2024
  */
-
 @Getter
 @Setter
 @Entity
 @NoArgsConstructor
-@Table(name = "quest_user_progress")
-public class QuestUserProgressModel {
+@Table(name = "quest_user")
+public class QuestUserModel {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -29,22 +28,15 @@ public class QuestUserProgressModel {
     private UUID uuid;
 
     @Column(nullable = false)
-    private int progress;
+    private LocalDateTime expiration;
 
     @ManyToOne
     @JoinColumn(name = "quest_name")
     private QuestModel quest;
 
-    @ManyToOne
-    @JoinColumn(name = "requirement_id")
-    private AbstractQuestRequirement requirement;
-
-    @Column(nullable = false, columnDefinition = "BOOLEAN")
-    private boolean completed;
-
-    public QuestUserProgressModel(UUID uuid, QuestModel quest, AbstractQuestRequirement requirement) {
+    public QuestUserModel(UUID uuid, LocalDateTime expiration, QuestModel quest) {
         this.uuid = uuid;
+        this.expiration = expiration;
         this.quest = quest;
-        this.requirement = requirement;
     }
 }

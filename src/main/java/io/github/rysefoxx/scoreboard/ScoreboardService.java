@@ -4,6 +4,7 @@ import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.quest.QuestModel;
+import io.github.rysefoxx.user.QuestUserModel;
 import io.github.rysefoxx.scoreboard.enums.ScoreboardPredefinedValue;
 import io.github.rysefoxx.scoreboard.impl.QuestScoreboard;
 import io.github.rysefoxx.util.TimeUtils;
@@ -14,10 +15,7 @@ import org.bukkit.scoreboard.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * @author Rysefoxx
@@ -161,14 +159,21 @@ public class ScoreboardService {
                 yield Component.text(questProgress);
             }
             case QUEST_REMAINING_TIME -> {
-                String questTime = questModel != null
-                        ? TimeUtils.toReadableString(questUserProgressModels.getFirst().getExpiration())
-                        : this.languageService.getTranslatedMessage(player, "quest_no_active");
-                yield Component.text(questTime);
+                String remainingTime;
+                if (questModel != null) {
+                    Optional<QuestUserModel> questUserModelOpt = questModel.getUserQuests().stream()
+                            .filter(questUser -> questUser.getUuid().equals(player.getUniqueId()))
+                            .findFirst();
+                    remainingTime = questUserModelOpt
+                            .map(questUser -> TimeUtils.toReadableString(questUser.getExpiration()))
+                            .orElse("Unknown");
+                } else {
+                    remainingTime = this.languageService.getTranslatedMessage(player, "quest_no_active");
+                }
+                yield Component.text(remainingTime);
             }
         };
     }
-
 
     /**
      * Checks if a player has a scoreboard.

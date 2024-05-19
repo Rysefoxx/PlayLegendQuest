@@ -10,6 +10,7 @@ import io.github.rysefoxx.quest.impl.QuestCollectRequirement;
 import io.github.rysefoxx.quest.impl.QuestKillRequirement;
 import io.github.rysefoxx.reward.QuestRewardModel;
 import io.github.rysefoxx.stats.PlayerStatisticsModel;
+import io.github.rysefoxx.user.QuestUserModel;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -173,7 +174,8 @@ public class ConnectionService {
                 AbstractQuestRequirement.class,
                 QuestKillRequirement.class,
                 QuestCollectRequirement.class,
-                PlayerStatisticsModel.class
+                PlayerStatisticsModel.class,
+                QuestUserModel.class
         );
     }
 

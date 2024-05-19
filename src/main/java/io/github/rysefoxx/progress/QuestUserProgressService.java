@@ -6,6 +6,8 @@ import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.database.ConnectionService;
 import io.github.rysefoxx.database.IDatabaseOperation;
 import io.github.rysefoxx.enums.ResultType;
+import io.github.rysefoxx.quest.QuestModel;
+import io.github.rysefoxx.user.QuestUserModel;
 import lombok.Getter;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -26,7 +28,6 @@ import java.util.logging.Level;
 public class QuestUserProgressService implements IDatabaseOperation<QuestUserProgressModel, UUID> {
 
     private final SessionFactory sessionFactory;
-    @Getter
     private final AsyncLoadingCache<UUID, List<QuestUserProgressModel>> cache;
 
     public QuestUserProgressService() {
@@ -101,12 +102,23 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
                         .list();
                 if (questUserProgressModels.isEmpty()) return ResultType.NO_ROWS_AFFECTED;
 
+                QuestModel questModel = questUserProgressModels.getFirst().getQuest();
+                questModel.getUserProgress().removeAll(questUserProgressModels);
+
                 for (QuestUserProgressModel questUserProgressModel : questUserProgressModels) {
-                    questUserProgressModel.getQuest().getUserProgress().remove(questUserProgressModel);
                     session.remove(questUserProgressModel);
                 }
-                transaction.commit();
 
+                QuestUserModel questUserModel = session.createQuery("FROM QuestUserModel WHERE uuid = :uuid AND quest.name = :questName", QuestUserModel.class)
+                        .setParameter("uuid", uuid)
+                        .setParameter("questName", questName)
+                        .uniqueResult();
+                if (questUserModel != null) {
+                    questUserModel.getQuest().getUserQuests().remove(questUserModel);
+                    session.remove(questUserModel);
+                }
+
+                transaction.commit();
                 return this.cache.synchronous().refresh(uuid)
                         .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
                         .exceptionally(e -> {
@@ -115,7 +127,7 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
                         }).get();
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to delete QuestUserProgressModel: " + e.getMessage(), e);
+                PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to delete QuestUserModel: " + e.getMessage(), e);
                 return ResultType.ERROR;
             }
         });

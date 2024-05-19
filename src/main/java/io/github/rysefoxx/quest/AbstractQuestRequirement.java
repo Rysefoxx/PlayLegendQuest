@@ -8,6 +8,7 @@ import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.reward.QuestRewardService;
 import io.github.rysefoxx.scoreboard.ScoreboardService;
+import io.github.rysefoxx.user.QuestUserService;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -18,6 +19,7 @@ import org.bukkit.event.Listener;
 import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nonnegative;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 
@@ -46,10 +48,12 @@ public abstract class AbstractQuestRequirement implements Listener {
     private QuestRequirementType questRequirementType;
 
     private transient PlayLegendQuest plugin;
+    private transient QuestService questService;
     private transient QuestUserProgressService questUserProgressService;
     private transient QuestRewardService questRewardService;
     private transient LanguageService languageService;
     private transient ScoreboardService scoreboardService;
+    private transient QuestUserService questUserService;
 
     public AbstractQuestRequirement(@NotNull PlayLegendQuest plugin, @Nonnegative int requiredAmount, @NotNull QuestRequirementType questRequirementType) {
         this.plugin = plugin;
@@ -68,6 +72,8 @@ public abstract class AbstractQuestRequirement implements Listener {
         this.languageService = this.plugin.getLanguageService();
         this.scoreboardService = this.plugin.getScoreboardService();
         this.questRewardService = this.plugin.getQuestRewardService();
+        this.questUserService = this.plugin.getQuestUserService();
+        this.questService = this.plugin.getQuestService();
     }
 
     protected void updateProgress(@NotNull Player player, @Nonnegative int progressIncrement) {
@@ -103,6 +109,18 @@ public abstract class AbstractQuestRequirement implements Listener {
                 getLanguageService().sendTranslatedMessage(player, "quest_done");
 
                 getQuestRewardService().rewardPlayer(player, questModel);
+
+                questModel.getUserQuests().removeIf(questUserModel -> questUserModel.getUuid().equals(player.getUniqueId()));
+
+                this.questUserService.deleteByUuid(player.getUniqueId()).thenCompose(resultType1 -> {
+                    if (resultType1 != ResultType.SUCCESS) {
+                        player.sendRichMessage("Error while deleting quest progress.");
+                        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while deleting user quest model for player " + player.getName() + "! | " + resultType1);
+                        return CompletableFuture.completedFuture(null);
+                    }
+
+                    return this.questService.getCache().synchronous().refresh(questModel.getName());
+                });
             }).exceptionally(e -> {
                 player.sendRichMessage("Error while saving quest progress.");
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Error while saving quest progress: " + e.getMessage(), e);
@@ -114,4 +132,5 @@ public abstract class AbstractQuestRequirement implements Listener {
             return null;
         });
     }
+
 }

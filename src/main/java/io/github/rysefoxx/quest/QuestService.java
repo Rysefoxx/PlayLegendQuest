@@ -9,6 +9,7 @@ import io.github.rysefoxx.enums.QuestRequirementType;
 import io.github.rysefoxx.enums.ResultType;
 import io.github.rysefoxx.quest.impl.QuestCollectRequirement;
 import io.github.rysefoxx.quest.impl.QuestKillRequirement;
+import lombok.Getter;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.hibernate.Session;
@@ -30,6 +31,7 @@ import java.util.logging.Level;
 public class QuestService implements IDatabaseOperation<QuestModel, String> {
 
     private final SessionFactory sessionFactory;
+    @Getter
     private final AsyncLoadingCache<String, QuestModel> cache;
 
     public QuestService() {

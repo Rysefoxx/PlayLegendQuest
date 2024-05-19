@@ -3,6 +3,7 @@ package io.github.rysefoxx.quest;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.reward.QuestRewardModel;
+import io.github.rysefoxx.user.QuestUserModel;
 import io.github.rysefoxx.util.TimeUtils;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -54,6 +55,9 @@ public class QuestModel {
     private List<QuestRewardModel> rewards = new ArrayList<>();
 
     @OneToMany(mappedBy = "quest", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    private List<QuestUserModel> userQuests = new ArrayList<>();
+
+    @OneToMany(mappedBy = "quest", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<QuestUserProgressModel> userProgress = new ArrayList<>();
 
     @OneToMany(mappedBy = "quest", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
@@ -77,6 +81,7 @@ public class QuestModel {
     }
 
     public void sendProgressToUser(@NotNull Player player, @NotNull LanguageService languageService, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
+        QuestUserModel questUserModel = getUserQuestModel(player);
         int completedRequirements = getCompletedRequirementsCount(questUserProgressModels);
         String requirementTranslation = languageService.getTranslatedMessage(player, "quest_info_requirement");
 
@@ -84,7 +89,7 @@ public class QuestModel {
         languageService.sendTranslatedMessage(player, "quest_info_description",
                 getDescription() != null ? getDescription() : languageService.getTranslatedMessage(player, "quest_info_no_description"));
         languageService.sendTranslatedMessage(player, "quest_info_displayname", getDisplayName());
-        languageService.sendTranslatedMessage(player, "quest_info_duration", TimeUtils.toReadableString(questUserProgressModels.getFirst().getExpiration()));
+        languageService.sendTranslatedMessage(player, "quest_info_duration", questUserModel == null ? "Unknown" : TimeUtils.toReadableString(questUserModel.getExpiration()));
         languageService.sendTranslatedMessage(player, "quest_info_requirements", String.valueOf(completedRequirements), String.valueOf(getRequirements().size()));
 
         for (String progressDetail : getProgressDetails(requirementTranslation, questUserProgressModels)) {
@@ -119,5 +124,12 @@ public class QuestModel {
 
     public boolean hasPermission() {
         return this.permission != null;
+    }
+
+    public @Nullable QuestUserModel getUserQuestModel(@NotNull Player player) {
+        return this.userQuests.stream()
+                .filter(questUserModel -> questUserModel.getUuid().equals(player.getUniqueId()))
+                .findFirst()
+                .orElse(null);
     }
 }

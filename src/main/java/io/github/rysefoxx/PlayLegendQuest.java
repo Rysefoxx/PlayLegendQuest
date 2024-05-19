@@ -14,6 +14,7 @@ import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.reward.QuestRewardService;
 import io.github.rysefoxx.scoreboard.ScoreboardService;
 import io.github.rysefoxx.stats.PlayerStatisticsService;
+import io.github.rysefoxx.user.QuestUserService;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.PluginManager;
@@ -39,6 +40,7 @@ public class PlayLegendQuest extends JavaPlugin {
     private ScoreboardService scoreboardService;
     private QuestRequirementService questRequirementService;
     private QuestUserProgressService questUserProgressService;
+    private QuestUserService questUserService;
     private PlayerStatisticsService playerStatisticsService;
 
     public static Logger getLog() {
@@ -71,13 +73,14 @@ public class PlayLegendQuest extends JavaPlugin {
         this.questService = new QuestService();
         this.questUserProgressService = new QuestUserProgressService();
         this.questRequirementService = new QuestRequirementService(this);
+        this.questUserService = new QuestUserService();
         this.scoreboardService = new ScoreboardService(this.questUserProgressService, this.languageService);
     }
 
     private void initializeCommands() {
         Objects.requireNonNull(getCommand("questreward")).setExecutor(new CommandQuestReward(this.languageService, this.questRewardService));
         Objects.requireNonNull(getCommand("coins")).setExecutor(new CommandCoins(this.languageService, this.playerStatisticsService));
-        Objects.requireNonNull(getCommand("quest")).setExecutor(new CommandQuest(this, this.questService, this.questRewardService, this.questUserProgressService, this.questRequirementService, this.scoreboardService, this.languageService));
+        Objects.requireNonNull(getCommand("quest")).setExecutor(new CommandQuest(this, this.questService, this.questRewardService, this.questUserProgressService, this.questRequirementService, this.questUserService, this.scoreboardService, this.languageService));
     }
 
     private void initializeListeners() {
