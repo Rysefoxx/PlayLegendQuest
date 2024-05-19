@@ -25,7 +25,14 @@ public class CommandQuest implements CommandExecutor {
 
     private final HashMap<String, QuestOperation> operations = new HashMap<>();
 
-    public CommandQuest(@NotNull PlayLegendQuest plugin, @NotNull QuestService questService, @NotNull QuestRewardService questRewardService, @NotNull QuestUserProgressService questUserProgressService, @NotNull QuestRequirementService questRequirementService, @NotNull QuestUserService questUserService, @NotNull ScoreboardService scoreboardService, @NotNull LanguageService languageService) {
+    public CommandQuest(@NotNull PlayLegendQuest plugin,
+                        @NotNull QuestService questService,
+                        @NotNull QuestRewardService questRewardService,
+                        @NotNull QuestUserProgressService questUserProgressService,
+                        @NotNull QuestRequirementService questRequirementService,
+                        @NotNull QuestUserService questUserService,
+                        @NotNull ScoreboardService scoreboardService,
+                        @NotNull LanguageService languageService) {
         this.operations.put("accept", new QuestAcceptOperation(questService, languageService, questUserProgressService, questUserService, scoreboardService));
         this.operations.put("cancel", new QuestCancelOperation(questService, languageService, questUserProgressService, scoreboardService));
         this.operations.put("create", new QuestCreateOperation(questService, languageService));
