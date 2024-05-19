@@ -116,4 +116,8 @@ public class QuestModel {
     public boolean isCompleted(@NotNull List<QuestUserProgressModel> questUserProgressModels) {
         return questUserProgressModels.isEmpty() || questUserProgressModels.stream().allMatch(QuestUserProgressModel::isCompleted);
     }
+
+    public boolean hasPermission() {
+        return this.permission != null;
+    }
 }

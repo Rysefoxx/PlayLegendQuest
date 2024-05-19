@@ -153,6 +153,11 @@ public class CommandQuest implements CommandExecutor {
                 return;
             }
 
+            if(questModel.hasPermission() && !player.hasPermission(questModel.getPermission())) {
+                this.languageService.sendTranslatedMessage(player, "quest_no_permission");
+                return;
+            }
+
             this.questUserProgressService.hasQuest(player.getUniqueId()).thenAccept(hasQuest -> {
                 if (hasQuest) {
                     this.languageService.sendTranslatedMessage(player, "quest_already_active");
