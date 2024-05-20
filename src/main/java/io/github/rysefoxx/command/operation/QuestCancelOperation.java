@@ -60,7 +60,7 @@ public class QuestCancelOperation implements QuestOperation {
 
         return questUserProgressService.findByUuid(player.getUniqueId())
                 .thenCompose(questUserProgressModels -> handleQuestUserProgress(player, questUserProgressModels, name))
-                .exceptionally(e -> handleError(player, "Error while searching for quest user progress", e));
+                .exceptionally(throwable -> handleError(player, "Error while searching for quest user progress", throwable));
     }
 
     /**
@@ -85,13 +85,14 @@ public class QuestCancelOperation implements QuestOperation {
             return CompletableFuture.completedFuture(null);
         }
 
-        quest.getUserProgress().remove(questUserProgressModel);
+        quest.removeUserProgress(questUserProgressModel);
         quest.getUserQuests().removeIf(questUserModel -> questUserModel.getUuid().equals(player.getUniqueId()));
 
         return questUserProgressService.deleteQuest(player.getUniqueId(), name)
                 .thenCompose(progressResultType -> handleDeleteQuest(player, progressResultType, quest))
                 .exceptionally(e -> handleError(player, "Error while canceling quest", e));
     }
+
 
     /**
      * Handles the delete quest. If the quest was successfully deleted, the player will receive a message.

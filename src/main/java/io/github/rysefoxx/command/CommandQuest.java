@@ -27,6 +27,7 @@ import java.util.List;
 public class CommandQuest implements CommandExecutor, TabCompleter {
 
     private final HashMap<String, QuestOperation> operations = new HashMap<>();
+    private final LanguageService languageService;
 
     public CommandQuest(@NotNull PlayLegendQuest plugin,
                         @NotNull QuestService questService,
@@ -36,6 +37,7 @@ public class CommandQuest implements CommandExecutor, TabCompleter {
                         @NotNull QuestUserService questUserService,
                         @NotNull ScoreboardService scoreboardService,
                         @NotNull LanguageService languageService) {
+        this.languageService = languageService;
         this.operations.put("accept", new QuestAcceptOperation(questService, languageService, questUserProgressService, questUserService, scoreboardService));
         this.operations.put("cancel", new QuestCancelOperation(questService, languageService, questUserProgressService, scoreboardService));
         this.operations.put("create", new QuestCreateOperation(questService, languageService));
@@ -69,11 +71,21 @@ public class CommandQuest implements CommandExecutor, TabCompleter {
                     return false;
                 }
             }
+
+            if (isAdminCommand(args) && !player.hasPermission("playlegend.quest.admin")) {
+                this.languageService.sendTranslatedMessage(player, "no_permission");
+                return false;
+            }
+
             return questOperation.onCommand(player, command, label, args);
         } catch (IndexOutOfBoundsException ignored) {
             sendHelpMessage(player);
             return false;
         }
+    }
+
+    private boolean isAdminCommand(String @NotNull [] args) {
+        return !args[0].equalsIgnoreCase("accept") && !args[0].equalsIgnoreCase("cancel");
     }
 
     private void sendHelpMessage(@NotNull Player player) {

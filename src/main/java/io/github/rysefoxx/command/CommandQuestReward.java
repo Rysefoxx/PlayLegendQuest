@@ -29,6 +29,11 @@ public class CommandQuestReward implements CommandExecutor {
     public boolean onCommand(@NotNull CommandSender commandSender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if (!(commandSender instanceof Player player)) return false;
 
+        if(!player.hasPermission("playlegend.questreward.admin")) {
+            this.languageService.sendTranslatedMessage(player, "no_permission");
+            return false;
+        }
+
         if (args.length < 2 || args.length > 4) {
             sendHelpMessage(player);
             return false;

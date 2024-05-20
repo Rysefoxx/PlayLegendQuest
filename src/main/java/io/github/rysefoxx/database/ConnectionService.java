@@ -126,7 +126,7 @@ public class ConnectionService {
             hikariConfig.setUsername(config.getString("username"));
             hikariConfig.setPassword(config.getString("password"));
             hikariConfig.setDriverClassName("org.mariadb.jdbc.Driver");
-            hikariConfig.setMaximumPoolSize(20);
+            hikariConfig.setMaximumPoolSize(100);
 
             this.dataSource = new HikariDataSource(hikariConfig);
         } catch (Exception e) {

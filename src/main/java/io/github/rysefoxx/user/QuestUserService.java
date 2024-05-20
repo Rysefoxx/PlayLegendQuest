@@ -79,6 +79,7 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
                     session.merge(toSave);
                 }
                 transaction.commit();
+
                 return this.cache.synchronous().refresh(toSave.getId())
                         .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
                         .exceptionally(e -> {
@@ -176,7 +177,7 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
     private void expirationScheduler(@NotNull PlayLegendQuest plugin) {
         if (PlayLegendQuest.isUnitTest()) return;
 
-        Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> cache.synchronous().asMap().forEach(this::handleQuestExpiration), 0, 1, TimeUnit.SECONDS);
+//        Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> cache.synchronous().asMap().forEach(this::handleQuestExpiration), 0, 1, TimeUnit.SECONDS);
     }
 
     /**

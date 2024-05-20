@@ -191,4 +191,15 @@ public class QuestModel {
                 .findFirst()
                 .orElse(null);
     }
+
+
+    public void removeUserProgress(QuestUserProgressModel progress) {
+        this.userProgress.remove(progress);
+        progress.setQuest(null);
+    }
+
+    public void removeUserQuest(QuestUserModel userQuest) {
+        this.userQuests.remove(userQuest);
+        userQuest.setQuest(null);
+    }
 }
