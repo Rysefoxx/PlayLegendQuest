@@ -33,7 +33,7 @@ public class LanguageService {
         for (Language language : Language.values()) {
             try {
                 //Für testzwecke wird die Datei immer wieder überschrieben.
-                this.plugin.saveResource("messages_" + language.getCode() + ".properties", true);
+                this.plugin.saveResource("messages_" + language.getCode() + ".properties", false);
             } catch (IllegalArgumentException exception) {
                 this.plugin.getLogger().severe("Failed to save messages for language " + language + "!");
                 continue;
