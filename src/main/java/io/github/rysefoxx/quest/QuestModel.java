@@ -192,12 +192,21 @@ public class QuestModel {
                 .orElse(null);
     }
 
-
-    public void removeUserProgress(QuestUserProgressModel progress) {
+    /**
+     * Removes the user progress from the quest and sets the quest to null.
+     *
+     * @param progress The progress to remove.
+     */
+    public void removeUserProgress(@NotNull QuestUserProgressModel progress) {
         this.userProgress.remove(progress);
         progress.setQuest(null);
     }
 
+    /**
+     * Removes the user model from the quest and sets the quest to null.
+     *
+     * @param userQuest The user model to remove.
+     */
     public void removeUserQuest(QuestUserModel userQuest) {
         this.userQuests.remove(userQuest);
         userQuest.setQuest(null);
