@@ -78,18 +78,28 @@ public class QuestRewardService implements IDatabaseOperation<QuestRewardModel, 
                     session.merge(toSave);
                 }
                 transaction.commit();
-                return this.cache.synchronous().refresh(toSave.getId())
-                        .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
-                        .exceptionally(e -> {
-                            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestRewardModel cache: " + e.getMessage(), e);
-                            return ResultType.ERROR;
-                        }).get();
+                return ResultType.SUCCESS;
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to save QuestRewardModel: " + e.getMessage(), e);
                 return ResultType.ERROR;
             }
-        });
+        }).thenCompose(result -> result == ResultType.SUCCESS ? refreshCache(toSave.getId()) : CompletableFuture.completedFuture(result));
+    }
+
+    /**
+     * Refreshes the cache for the given identifier.
+     *
+     * @param rewardId The identifier of the quest reward model.
+     * @return The result of the operation.
+     */
+    private @NotNull CompletableFuture<@NotNull ResultType> refreshCache(Long rewardId) {
+        return this.cache.synchronous().refresh(rewardId)
+                .thenApply(v -> ResultType.SUCCESS)
+                .exceptionally(e -> {
+                    PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestRewardModel cache: " + e.getMessage(), e);
+                    return ResultType.ERROR;
+                });
     }
 
     /**

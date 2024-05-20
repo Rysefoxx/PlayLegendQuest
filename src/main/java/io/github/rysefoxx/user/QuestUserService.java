@@ -79,19 +79,28 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
                     session.merge(toSave);
                 }
                 transaction.commit();
-
-                return this.cache.synchronous().refresh(toSave.getId())
-                        .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
-                        .exceptionally(e -> {
-                            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestUserModel cache: " + e.getMessage(), e);
-                            return ResultType.ERROR;
-                        }).get();
+                return ResultType.SUCCESS;
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to save QuestUserModel: " + e.getMessage(), e);
                 return ResultType.ERROR;
             }
-        });
+        }).thenCompose(result -> result == ResultType.SUCCESS ? refreshCache(toSave.getId()) : CompletableFuture.completedFuture(result));
+    }
+
+    /**
+     * Refreshes the cache for the given identifier.
+     *
+     * @param id The identifier of the quest user model.
+     * @return The result of the operation.
+     */
+    private @NotNull CompletableFuture<@NotNull ResultType> refreshCache(@NotNull Long id) {
+        return this.cache.synchronous().refresh(id)
+                .thenApply(v -> ResultType.SUCCESS)
+                .exceptionally(e -> {
+                    PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestUserModel cache: " + e.getMessage(), e);
+                    return ResultType.ERROR;
+                });
     }
 
     /**
@@ -177,7 +186,7 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
     private void expirationScheduler(@NotNull PlayLegendQuest plugin) {
         if (PlayLegendQuest.isUnitTest()) return;
 
-//        Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> cache.synchronous().asMap().forEach(this::handleQuestExpiration), 0, 1, TimeUnit.SECONDS);
+        Bukkit.getAsyncScheduler().runAtFixedRate(plugin, scheduledTask -> cache.synchronous().asMap().forEach(this::handleQuestExpiration), 0, 1, TimeUnit.SECONDS);
     }
 
     /**
@@ -198,7 +207,9 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
                     QuestUserProgressModel questUserProgressModel = questUserProgressModels.get(0);
                     QuestModel quest = questUserProgressModel.getQuest();
 
-                    quest.getUserProgress().remove(questUserProgressModel);
+                    if (quest == null) return CompletableFuture.completedFuture(null);
+
+                    quest.removeUserProgress(questUserProgressModel);
                     quest.getUserQuests().removeIf(userModel -> userModel.getUuid().equals(questUserModel.getUuid()));
 
                     cache.synchronous().invalidate(id);

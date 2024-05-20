@@ -55,20 +55,30 @@ public class PlayerStatisticsService implements IDatabaseOperation<PlayerStatist
                     session.merge(toSave);
                 }
                 transaction.commit();
-
-                return this.cache.synchronous().refresh(toSave.getUuid())
-                        .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
-                        .exceptionally(e -> {
-                            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh PlayerStatisticsModel cache: " + e.getMessage(), e);
-                            return ResultType.ERROR;
-                        }).get();
+                return ResultType.SUCCESS;
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to save PlayerStatisticsModel: " + e.getMessage(), e);
                 return ResultType.ERROR;
             }
-        });
+        }).thenCompose(result -> result == ResultType.SUCCESS ? refreshCache(toSave.getUuid()) : CompletableFuture.completedFuture(result));
     }
+
+    /**
+     * Refreshes the cache for the given identifier.
+     *
+     * @param uuid The identifier of the player statistics model.
+     * @return The result of the operation.
+     */
+    private @NotNull CompletableFuture<@NotNull ResultType> refreshCache(UUID uuid) {
+        return this.cache.synchronous().refresh(uuid)
+                .thenApply(v -> ResultType.SUCCESS)
+                .exceptionally(e -> {
+                    PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh PlayerStatisticsModel cache: " + e.getMessage(), e);
+                    return ResultType.ERROR;
+                });
+    }
+
 
     /**
      * Deletes the object from the database by the given identifier.

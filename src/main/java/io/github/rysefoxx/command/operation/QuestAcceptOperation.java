@@ -154,7 +154,8 @@ public class QuestAcceptOperation implements QuestOperation {
         }
 
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-                .thenRun(() -> {
+                .thenCompose(v -> questService.getCache().synchronous().refresh(questModel.getName()))
+                .thenAccept(v -> {
                     scoreboardService.update(player);
                     languageService.sendTranslatedMessage(player, "quest_accepted_" + questResultType.toString().toLowerCase());
                 })

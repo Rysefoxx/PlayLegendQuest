@@ -9,6 +9,8 @@ import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.scoreboard.ScoreboardService;
+import io.github.rysefoxx.user.QuestUserModel;
+import io.github.rysefoxx.user.QuestUserService;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -28,6 +30,7 @@ import java.util.logging.Level;
 public class QuestCancelOperation implements QuestOperation {
 
     private final QuestService questService;
+    private final QuestUserService questUserService;
     private final LanguageService languageService;
     private final QuestUserProgressService questUserProgressService;
     private final ScoreboardService scoreboardService;
@@ -80,13 +83,18 @@ public class QuestCancelOperation implements QuestOperation {
         QuestUserProgressModel questUserProgressModel = questUserProgressModels.get(0);
         QuestModel quest = questUserProgressModel.getQuest();
 
-        if (!quest.getName().equalsIgnoreCase(name)) {
+        if (quest == null || !quest.getName().equalsIgnoreCase(name)) {
             languageService.sendTranslatedMessage(player, "quest_not_active", name);
             return CompletableFuture.completedFuture(null);
         }
 
+        QuestUserModel questUserModel = quest.getUserQuestModel(player);
+        if (questUserModel != null) {
+            this.questUserService.getCache().synchronous().invalidate(questUserModel.getId());
+        }
+
         quest.removeUserProgress(questUserProgressModel);
-        quest.getUserQuests().removeIf(questUserModel -> questUserModel.getUuid().equals(player.getUniqueId()));
+        quest.getUserQuests().remove(questUserModel);
 
         return questUserProgressService.deleteQuest(player.getUniqueId(), name)
                 .thenCompose(progressResultType -> handleDeleteQuest(player, progressResultType, quest))

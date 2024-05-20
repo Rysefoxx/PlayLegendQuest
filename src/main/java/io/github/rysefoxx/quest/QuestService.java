@@ -62,19 +62,30 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
                     session.merge(toSave);
                 }
                 transaction.commit();
-                return this.cache.synchronous().refresh(toSave.getName())
-                        .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
-                        .exceptionally(e -> {
-                            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestModel cache: " + e.getMessage(), e);
-                            return ResultType.ERROR;
-                        }).get();
+                return ResultType.SUCCESS;
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to save QuestModel: " + e.getMessage(), e);
                 return ResultType.ERROR;
             }
-        });
+        }).thenCompose(result -> result == ResultType.SUCCESS ? refreshCache(toSave.getName()) : CompletableFuture.completedFuture(result));
     }
+
+    /**
+     * Refreshes the cache for the given identifier.
+     *
+     * @param questName The identifier of the quest model.
+     * @return The result of the operation.
+     */
+    private @NotNull CompletableFuture<@NotNull ResultType> refreshCache(@NotNull String questName) {
+        return this.cache.synchronous().refresh(questName)
+                .thenApply(v -> ResultType.SUCCESS)
+                .exceptionally(e -> {
+                    PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestModel cache: " + e.getMessage(), e);
+                    return ResultType.ERROR;
+                });
+    }
+
 
     /**
      * Deletes the object from the database by the given identifier.

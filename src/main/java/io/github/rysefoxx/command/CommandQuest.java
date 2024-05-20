@@ -39,7 +39,7 @@ public class CommandQuest implements CommandExecutor, TabCompleter {
                         @NotNull LanguageService languageService) {
         this.languageService = languageService;
         this.operations.put("accept", new QuestAcceptOperation(questService, languageService, questUserProgressService, questUserService, scoreboardService));
-        this.operations.put("cancel", new QuestCancelOperation(questService, languageService, questUserProgressService, scoreboardService));
+        this.operations.put("cancel", new QuestCancelOperation(questService, questUserService, languageService, questUserProgressService, scoreboardService));
         this.operations.put("create", new QuestCreateOperation(questService, languageService));
         this.operations.put("delete", new QuestDeleteOperation(questService, languageService));
         this.operations.put("info", new QuestInfoOperation(questUserProgressService, languageService));

@@ -58,13 +58,13 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
                     session.merge(toSave);
                 }
                 transaction.commit();
-                return refreshCache(toSave.getUuid());
+                return ResultType.SUCCESS;
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to save QuestUserProgressModel: " + e.getMessage(), e);
                 return ResultType.ERROR;
             }
-        });
+        }).thenCompose(result -> result == ResultType.SUCCESS ? refreshCache(toSave.getUuid()) : CompletableFuture.completedFuture(result));
     }
 
     /**
@@ -117,26 +117,28 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
                         .setParameter("uuid", uuid)
                         .setParameter("questName", questName)
                         .list();
+                if (questUserProgressModels.isEmpty()) return ResultType.NO_ROWS_AFFECTED;
 
                 QuestModel questModel = questUserProgressModels.get(0).getQuest();
                 deleteUserProgress(questUserProgressModels, questModel, session);
                 deleteUserModel(session, uuid, questName, questModel);
 
                 transaction.commit();
-                return refreshCache(uuid);
+                return ResultType.SUCCESS;
             } catch (Exception e) {
                 if (transaction != null) transaction.rollback();
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to delete QuestUserModel: " + e.getMessage(), e);
                 return ResultType.ERROR;
             }
-        });
+        }).thenCompose(result -> result == ResultType.SUCCESS ? refreshCache(uuid) : CompletableFuture.completedFuture(result));
     }
 
     /**
      * Deletes the user progress from the database.
+     *
      * @param questUserProgressModels The user progress models to delete.
-     * @param questModel The quest model.
-     * @param session The session to use.
+     * @param questModel              The quest model.
+     * @param session                 The session to use.
      */
     private void deleteUserProgress(@NotNull List<QuestUserProgressModel> questUserProgressModels, @NotNull QuestModel questModel, @NotNull Session session) {
         questModel.getUserProgress().removeAll(questUserProgressModels);
@@ -170,15 +172,14 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
      *
      * @param uuid The identifier to refresh the cache for.
      * @return The result of the operation.
-     * @throws Exception If the operation fails.
      */
-    private @NotNull ResultType refreshCache(@NotNull UUID uuid) throws Exception {
+    private @NotNull CompletableFuture<@NotNull ResultType> refreshCache(UUID uuid) {
         return this.cache.synchronous().refresh(uuid)
-                .thenCompose(v -> CompletableFuture.completedFuture(ResultType.SUCCESS))
+                .thenApply(v -> ResultType.SUCCESS)
                 .exceptionally(e -> {
                     PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestUserProgressModel cache: " + e.getMessage(), e);
                     return ResultType.ERROR;
-                }).get();
+                });
     }
 
 
