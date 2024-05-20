@@ -87,6 +87,9 @@ public class PlayLegendQuest extends JavaPlugin {
         unitTest = true;
     }
 
+    /**
+     * Initializes all managers.
+     */
     private void initializeManagers() {
         this.connectionService = new ConnectionService(this);
         new DatabaseTableService(this, this.connectionService);
@@ -102,17 +105,26 @@ public class PlayLegendQuest extends JavaPlugin {
         this.questUserService = new QuestUserService(this, this.questUserProgressService, this.languageService, this.scoreboardService, this.questService);
     }
 
+    /**
+     * Initializes all commands. Make sure you have defined the commands in the plugin.yml.
+     */
     private void initializeCommands() {
         Objects.requireNonNull(getCommand("questreward")).setExecutor(new CommandQuestReward(this.languageService, this.questRewardService));
         Objects.requireNonNull(getCommand("coins")).setExecutor(new CommandCoins(this.languageService, this.playerStatisticsService));
         Objects.requireNonNull(getCommand("quest")).setExecutor(new CommandQuest(this, this.questService, this.questRewardService, this.questUserProgressService, this.questRequirementService, this.questUserService, this.scoreboardService, this.languageService));
     }
 
+    /**
+     * Initializes all tab completers.
+     */
     private void initializeTabCompleter() {
         Objects.requireNonNull(getCommand("quest")).setTabCompleter(new TabCompleteQuest());
         Objects.requireNonNull(getCommand("questreward")).setTabCompleter(new TabCompleteQuestReward());
     }
 
+    /**
+     * Initializes all listeners.
+     */
     private void initializeListeners() {
         PluginManager pluginManager = Bukkit.getPluginManager();
         pluginManager.registerEvents(new ConnectionListener(this.questUserProgressService, this.scoreboardService, this.languageService), this);
