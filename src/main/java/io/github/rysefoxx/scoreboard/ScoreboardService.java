@@ -138,6 +138,15 @@ public class ScoreboardService {
         });
     }
 
+    /**
+     * Gets the component for a predefined value. The component will be translated if necessary.
+     *
+     * @param predefinedValue         The predefined value to get the component for.
+     * @param player                  The player to get the component for.
+     * @param questModel              The quest model to get the component for.
+     * @param questUserProgressModels The quest user progress models to get the component for.
+     * @return The component for the predefined value.
+     */
     private @NotNull Component getComponentForPredefinedValue(@NotNull ScoreboardPredefinedValue predefinedValue, @NotNull Player player, @Nullable QuestModel questModel, @NotNull List<QuestUserProgressModel> questUserProgressModels) {
         return switch (predefinedValue) {
             case QUEST_NAME -> {
