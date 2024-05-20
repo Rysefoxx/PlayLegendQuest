@@ -9,6 +9,7 @@ import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.reward.QuestRewardService;
 import io.github.rysefoxx.scoreboard.ScoreboardService;
 import io.github.rysefoxx.user.QuestUserService;
+import io.github.rysefoxx.util.LogUtils;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -109,7 +110,7 @@ public abstract class AbstractQuestRequirement implements Listener {
     protected void updateProgress(@NotNull Player player, @Nonnegative int progressIncrement) {
         getQuestUserProgressService().findByUuid(player.getUniqueId())
                 .thenCompose(questUserProgressModels -> handleQuestUserProgressModels(player, questUserProgressModels, progressIncrement))
-                .exceptionally(throwable -> handleError(player, throwable));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while finding user progress for " + player.getName(), throwable));
     }
 
     /**
@@ -201,19 +202,6 @@ public abstract class AbstractQuestRequirement implements Listener {
 
                     return questService.getCache().synchronous().refresh(questModel.getName()).thenApply(refreshedQuestModel -> null);
                 });
-    }
-
-    /**
-     * Handles an error that occurred while updating the quest progress.
-     *
-     * @param player    The player to handle the error for.
-     * @param throwable The error that occurred.
-     * @return A future that completes when the error has been handled.
-     */
-    private @Nullable Void handleError(@NotNull Player player, @NotNull Throwable throwable) {
-        player.sendRichMessage("Error while searching for quest progress.");
-        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest progress." + ": " + throwable.getMessage(), throwable);
-        return null;
     }
 
     /**

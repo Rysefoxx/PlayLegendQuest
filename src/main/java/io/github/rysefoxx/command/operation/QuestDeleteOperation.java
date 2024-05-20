@@ -4,6 +4,7 @@ import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.command.QuestOperation;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.quest.QuestService;
+import io.github.rysefoxx.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -29,11 +30,7 @@ public class QuestDeleteOperation implements QuestOperation {
         String name = args[1];
         this.questService.delete(name).thenAccept(resultType -> {
             this.languageService.sendTranslatedMessage(player, "quest_deleted_" + resultType.toString().toLowerCase());
-        }).exceptionally(throwable -> {
-            player.sendRichMessage("Error while deleting quest");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Error deleting quest: " + throwable.getMessage(), throwable);
-            return null;
-        });
+        }).exceptionally(throwable -> LogUtils.handleError(player, "Error while deleting quest", throwable));
         return false;
     }
 }

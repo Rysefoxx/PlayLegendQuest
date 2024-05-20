@@ -8,6 +8,7 @@ import io.github.rysefoxx.database.IDatabaseOperation;
 import io.github.rysefoxx.enums.ResultType;
 import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.user.QuestUserModel;
+import io.github.rysefoxx.util.LogUtils;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -176,8 +177,8 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
     private @NotNull CompletableFuture<@NotNull ResultType> refreshCache(UUID uuid) {
         return this.cache.synchronous().refresh(uuid)
                 .thenApply(v -> ResultType.SUCCESS)
-                .exceptionally(e -> {
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestUserProgressModel cache: " + e.getMessage(), e);
+                .exceptionally(throwable -> {
+                    LogUtils.handleError(null, "Failed to refresh QuestUserProgressModel cache", throwable);
                     return ResultType.ERROR;
                 });
     }
@@ -239,11 +240,11 @@ public class QuestUserProgressService implements IDatabaseOperation<QuestUserPro
                         .list()
                         .isEmpty();
             } catch (Exception e) {
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to check if quest is completed: " + e.getMessage(), e);
+                LogUtils.handleError(null, "Failed to check if quest is completed", e);
                 return false;
             }
-        }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to check if quest is completed: " + e.getMessage(), e);
+        }).exceptionally(throwable -> {
+            LogUtils.handleError(null, "Failed to check if quest is completed", throwable);
             return false;
         });
     }

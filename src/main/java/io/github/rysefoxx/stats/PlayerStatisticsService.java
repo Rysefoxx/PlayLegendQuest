@@ -6,6 +6,7 @@ import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.database.ConnectionService;
 import io.github.rysefoxx.database.IDatabaseOperation;
 import io.github.rysefoxx.enums.ResultType;
+import io.github.rysefoxx.util.LogUtils;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -73,8 +74,8 @@ public class PlayerStatisticsService implements IDatabaseOperation<PlayerStatist
     private @NotNull CompletableFuture<@NotNull ResultType> refreshCache(UUID uuid) {
         return this.cache.synchronous().refresh(uuid)
                 .thenApply(v -> ResultType.SUCCESS)
-                .exceptionally(e -> {
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh PlayerStatisticsModel cache: " + e.getMessage(), e);
+                .exceptionally(throwable -> {
+                    LogUtils.handleError(null, "Failed to refresh PlayerStatisticsModel cache", throwable);
                     return ResultType.ERROR;
                 });
     }

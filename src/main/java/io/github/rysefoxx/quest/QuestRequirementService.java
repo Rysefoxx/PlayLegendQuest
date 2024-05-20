@@ -2,6 +2,7 @@ package io.github.rysefoxx.quest;
 
 import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.database.ConnectionService;
+import io.github.rysefoxx.util.LogUtils;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -81,10 +82,7 @@ public class QuestRequirementService {
                 abstractQuestRequirement.setPlugin(plugin);
                 abstractQuestRequirement.register();
             }
-        }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to register listeners: " + e.getMessage(), e);
-            return null;
-        });
+        }).exceptionally(throwable -> LogUtils.handleError(null, "Failed to register listeners", throwable));
     }
 
 }

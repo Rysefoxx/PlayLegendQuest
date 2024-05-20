@@ -7,6 +7,7 @@ import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.reward.QuestRewardModel;
 import io.github.rysefoxx.reward.QuestRewardService;
+import io.github.rysefoxx.util.LogUtils;
 import io.github.rysefoxx.util.Maths;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
@@ -63,7 +64,9 @@ public class QuestRewardOperation implements QuestOperation {
         String name = args[2];
         long rewardId = Long.parseLong(args[3]);
 
-        questService.findByName(name).thenCompose(questModel -> handleQuestModel(player, questModel, rewardId, isAddOperation)).exceptionally(e -> handleError(player, "Error while searching for quest", e));
+        questService.findByName(name)
+                .thenCompose(questModel -> handleQuestModel(player, questModel, rewardId, isAddOperation))
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while searching for quest", throwable));
     }
 
     /**
@@ -87,7 +90,7 @@ public class QuestRewardOperation implements QuestOperation {
             } else {
                 return handleRemoveReward(player, questModel, questRewardModel, rewardId);
             }
-        }).exceptionally(e -> handleError(player, "Error while searching for a reward", e));
+        }).exceptionally(throwable -> LogUtils.handleError(player, "Error while searching for a reward", throwable));
     }
 
     /**
@@ -148,20 +151,6 @@ public class QuestRewardOperation implements QuestOperation {
     private @NotNull CompletableFuture<@Nullable Void> saveQuestModel(@NotNull Player player, @NotNull QuestModel questModel) {
         return questService.save(questModel).thenAccept(resultType -> {
             languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
-        }).exceptionally(e -> handleError(player, "Error while saving reward to quest", e));
-    }
-
-    /**
-     * Handles an error. The player will receive a message and the error will be logged.
-     *
-     * @param player    The player who executed the command.
-     * @param message   The message to send to the player.
-     * @param throwable The throwable that occurred.
-     * @return null
-     */
-    private @Nullable Void handleError(@NotNull Player player, @NotNull String message, @NotNull Throwable throwable) {
-        player.sendRichMessage(message);
-        PlayLegendQuest.getLog().log(Level.SEVERE, message + ": " + throwable.getMessage(), throwable);
-        return null;
+        }).exceptionally(throwable -> LogUtils.handleError(player, "Error while saving reward to quest", throwable));
     }
 }

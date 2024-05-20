@@ -9,6 +9,7 @@ import io.github.rysefoxx.enums.QuestRequirementType;
 import io.github.rysefoxx.enums.ResultType;
 import io.github.rysefoxx.quest.impl.QuestCollectRequirement;
 import io.github.rysefoxx.quest.impl.QuestKillRequirement;
+import io.github.rysefoxx.util.LogUtils;
 import lombok.Getter;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
@@ -80,8 +81,8 @@ public class QuestService implements IDatabaseOperation<QuestModel, String> {
     private @NotNull CompletableFuture<@NotNull ResultType> refreshCache(@NotNull String questName) {
         return this.cache.synchronous().refresh(questName)
                 .thenApply(v -> ResultType.SUCCESS)
-                .exceptionally(e -> {
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestModel cache: " + e.getMessage(), e);
+                .exceptionally(throwable -> {
+                    LogUtils.handleError(null, "Error while refreshing QuestModel cache", throwable);
                     return ResultType.ERROR;
                 });
     }

@@ -11,6 +11,7 @@ import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.reward.impl.CoinQuestReward;
 import io.github.rysefoxx.reward.impl.ExperienceQuestReward;
 import io.github.rysefoxx.reward.impl.ItemQuestReward;
+import io.github.rysefoxx.util.LogUtils;
 import org.bukkit.entity.Player;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -96,8 +97,8 @@ public class QuestRewardService implements IDatabaseOperation<QuestRewardModel, 
     private @NotNull CompletableFuture<@NotNull ResultType> refreshCache(Long rewardId) {
         return this.cache.synchronous().refresh(rewardId)
                 .thenApply(v -> ResultType.SUCCESS)
-                .exceptionally(e -> {
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestRewardModel cache: " + e.getMessage(), e);
+                .exceptionally(throwable -> {
+                    LogUtils.handleError(null, "Error while refreshing QuestRewardModel cache", throwable);
                     return ResultType.ERROR;
                 });
     }
@@ -274,9 +275,6 @@ public class QuestRewardService implements IDatabaseOperation<QuestRewardModel, 
 
                 abstractQuestReward.register();
             }
-        }).exceptionally(e -> {
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to register listeners: " + e.getMessage(), e);
-            return null;
-        });
+        }).exceptionally(throwable -> LogUtils.handleError(null, "Failed to register rewards", throwable));
     }
 }

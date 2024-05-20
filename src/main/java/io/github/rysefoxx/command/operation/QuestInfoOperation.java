@@ -1,11 +1,11 @@
 package io.github.rysefoxx.command.operation;
 
-import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.command.QuestOperation;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.progress.QuestUserProgressModel;
 import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.quest.QuestModel;
+import io.github.rysefoxx.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -15,7 +15,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
 
 /**
  * @author Rysefoxx
@@ -33,7 +32,7 @@ public class QuestInfoOperation implements QuestOperation {
 
         questUserProgressService.findByUuid(player.getUniqueId())
                 .thenCompose(questUserProgressModels -> handleQuestUserProgress(player, questUserProgressModels))
-                .exceptionally(throwable -> handleError(player, throwable));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while finding user progress for user " + player.getName(), throwable));
 
         return false;
     }
@@ -54,18 +53,5 @@ public class QuestInfoOperation implements QuestOperation {
         QuestModel questModel = questUserProgressModels.get(0).getQuest();
         questModel.sendProgressToUser(player, languageService, questUserProgressModels);
         return CompletableFuture.completedFuture(null);
-    }
-
-    /**
-     * Handles the error. The player will receive a message, that an error occurred.
-     *
-     * @param player    The player who executed the command.
-     * @param throwable The throwable.
-     * @return Null.
-     */
-    private @Nullable Void handleError(@NotNull Player player, @NotNull Throwable throwable) {
-        player.sendRichMessage("Error while searching for user quest progress");
-        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for user quest progress" + ": " + throwable.getMessage(), throwable);
-        return null;
     }
 }

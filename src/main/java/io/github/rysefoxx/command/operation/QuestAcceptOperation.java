@@ -12,6 +12,7 @@ import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.scoreboard.ScoreboardService;
 import io.github.rysefoxx.user.QuestUserModel;
 import io.github.rysefoxx.user.QuestUserService;
+import io.github.rysefoxx.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -45,7 +46,7 @@ public class QuestAcceptOperation implements QuestOperation {
 
         this.questService.findByName(name)
                 .thenCompose(questModel -> handleQuestModel(player, questModel, name))
-                .exceptionally(throwable -> handleError(player, "Error while searching for quest", throwable));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while searching for quest", throwable));
 
         return false;
     }
@@ -76,7 +77,7 @@ public class QuestAcceptOperation implements QuestOperation {
 
         return questUserProgressService.hasQuest(player.getUniqueId())
                 .thenCompose(hasQuest -> handleHasQuest(player, hasQuest, name, questModel))
-                .exceptionally(e -> handleError(player, "Error while searching for quest user progress", e));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while searching for quest user progress", throwable));
     }
 
     /**
@@ -96,7 +97,7 @@ public class QuestAcceptOperation implements QuestOperation {
 
         return questUserProgressService.isQuestCompleted(player.getUniqueId(), name)
                 .thenCompose(isCompleted -> handleIsQuestCompleted(player, isCompleted, questModel))
-                .exceptionally(e -> handleError(player, "Error while checking if quest is completed", e));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while checking if quest is completed", throwable));
     }
 
     /**
@@ -116,7 +117,7 @@ public class QuestAcceptOperation implements QuestOperation {
         QuestUserModel questUserModel = new QuestUserModel(player.getUniqueId(), questModel);
         return questUserService.save(questUserModel)
                 .thenCompose(userResultType -> handleSaveUser(player, userResultType, questModel))
-                .exceptionally(e -> handleError(player, "Error while accepting quest", e));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while accepting quest", throwable));
     }
 
     /**
@@ -135,7 +136,7 @@ public class QuestAcceptOperation implements QuestOperation {
 
         return questService.save(questModel)
                 .thenCompose(questResultType -> handleSaveQuest(player, questResultType, questModel))
-                .exceptionally(e -> handleError(player, "Error while accepting quest", e));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while accepting quest", throwable));
     }
 
     /**
@@ -159,20 +160,6 @@ public class QuestAcceptOperation implements QuestOperation {
                     scoreboardService.update(player);
                     languageService.sendTranslatedMessage(player, "quest_accepted_" + questResultType.toString().toLowerCase());
                 })
-                .exceptionally(e -> handleError(player, "Error while accepting quest", e));
-    }
-
-    /**
-     * Handles the error. The player will receive a message and the error will be logged.
-     *
-     * @param player    The player who executed the command.
-     * @param message   The message to send to the player.
-     * @param throwable The throwable to log.
-     * @return null.
-     */
-    private @Nullable Void handleError(@NotNull Player player, @NotNull String message, @NotNull Throwable throwable) {
-        player.sendMessage(message);
-        PlayLegendQuest.getLog().log(Level.SEVERE, message + ": " + throwable.getMessage(), throwable);
-        return null;
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while accepting quest", throwable));
     }
 }

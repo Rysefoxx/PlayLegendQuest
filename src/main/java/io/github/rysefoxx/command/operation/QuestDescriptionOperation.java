@@ -7,6 +7,7 @@ import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.scoreboard.ScoreboardService;
+import io.github.rysefoxx.util.LogUtils;
 import io.github.rysefoxx.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
@@ -38,7 +39,7 @@ public class QuestDescriptionOperation implements QuestOperation {
 
         questService.findByName(name)
                 .thenCompose(questModel -> handleQuestModel(player, questModel, description))
-                .exceptionally(ethrowable -> handleError(player, "Error while searching for quest", ethrowable));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while searching for quest", throwable));
 
         return false;
     }
@@ -60,7 +61,7 @@ public class QuestDescriptionOperation implements QuestOperation {
         questModel.setDescription(description);
         return questService.save(questModel)
                 .thenAccept(resultType -> handleSaveResult(player, resultType))
-                .exceptionally(e -> handleError(player, "Error while saving description for quest", e));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while saving description for quest", throwable));
     }
 
     /**
@@ -72,19 +73,5 @@ public class QuestDescriptionOperation implements QuestOperation {
     private void handleSaveResult(@NotNull Player player, @NotNull ResultType resultType) {
         scoreboardService.update(player);
         languageService.sendTranslatedMessage(player, "quest_updated_" + resultType.toString().toLowerCase());
-    }
-
-    /**
-     * Handles the error. Sends a message to the player and logs the error.
-     *
-     * @param player    The player who executed the command.
-     * @param message   The message to send.
-     * @param throwable The throwable.
-     * @return null
-     */
-    private @Nullable Void handleError(@NotNull Player player, @NotNull String message, @NotNull Throwable throwable) {
-        player.sendRichMessage(message);
-        PlayLegendQuest.getLog().log(Level.SEVERE, message + ": " + throwable.getMessage(), throwable);
-        return null;
     }
 }

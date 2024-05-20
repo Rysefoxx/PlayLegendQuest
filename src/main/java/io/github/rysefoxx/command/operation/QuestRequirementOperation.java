@@ -9,6 +9,7 @@ import io.github.rysefoxx.quest.AbstractQuestRequirement;
 import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.quest.QuestRequirementService;
 import io.github.rysefoxx.quest.QuestService;
+import io.github.rysefoxx.util.LogUtils;
 import io.github.rysefoxx.util.Maths;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
@@ -70,7 +71,7 @@ public class QuestRequirementOperation implements QuestOperation {
         long requirementId = Long.parseLong(args[2]);
         questService.findRequirementById(requirementId)
                 .thenAccept(abstractQuestRequirement -> handleRequirementInfo(player, abstractQuestRequirement))
-                .exceptionally(e -> handleError(player, "Error while searching for quest requirement", e));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while searching for quest requirement", throwable));
     }
 
     /**
@@ -104,7 +105,7 @@ public class QuestRequirementOperation implements QuestOperation {
 
         questService.findByName(name)
                 .thenCompose(questModel -> handleRemoveRequirement(player, questModel, requirementId))
-                .exceptionally(throwable -> handleError(player, "Error while searching for quest", throwable));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while searching for quest", throwable));
     }
 
     /**
@@ -133,7 +134,7 @@ public class QuestRequirementOperation implements QuestOperation {
 
         return questService.removeRequirement(questModel, requirement)
                 .thenAccept(resultType -> handleSaveResult(player, resultType, "Error while removing requirement from quest"))
-                .exceptionally(e -> handleError(player, "Error removing requirement from quest", e));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error removing requirement from quest", throwable));
     }
 
     /**
@@ -157,7 +158,7 @@ public class QuestRequirementOperation implements QuestOperation {
         String name = args[2];
         questService.findByName(name)
                 .thenCompose(questModel -> handleAddRequirement(player, questModel, requirementType, args))
-                .exceptionally(e -> handleError(player, "Error while finding quest", e));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while finding quest", throwable));
     }
 
     /**
@@ -187,7 +188,7 @@ public class QuestRequirementOperation implements QuestOperation {
 
         return questRequirementService.save(requirement)
                 .thenCompose(requirementId -> handleSaveRequirement(player, requirementId, questModel, requirement))
-                .exceptionally(e -> handleError(player, "Error while saving requirement", e));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while saving requirement", throwable));
     }
 
     /**
@@ -208,7 +209,7 @@ public class QuestRequirementOperation implements QuestOperation {
         questModel.getRequirements().add(requirement);
         return questService.save(questModel)
                 .thenAccept(resultType -> handleSaveResult(player, resultType, "Error while saving requirement to quest"))
-                .exceptionally(e -> handleError(player, "Error while saving requirement to quest", e));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while saving requirement to quest", throwable));
     }
 
     /**
@@ -224,19 +225,5 @@ public class QuestRequirementOperation implements QuestOperation {
         } else {
             player.sendRichMessage(errorMessage);
         }
-    }
-
-    /**
-     * Handles an error. The player will receive a message and the error will be logged.
-     *
-     * @param player    The player who executed the command.
-     * @param message   The message to send to the player.
-     * @param throwable The throwable.
-     * @return null
-     */
-    private @Nullable Void handleError(@NotNull Player player, @NotNull String message, @NotNull Throwable throwable) {
-        player.sendRichMessage(message);
-        PlayLegendQuest.getLog().log(Level.SEVERE, message + ": " + throwable.getMessage(), throwable);
-        return null;
     }
 }

@@ -11,6 +11,7 @@ import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.scoreboard.ScoreboardService;
 import io.github.rysefoxx.user.QuestUserModel;
 import io.github.rysefoxx.user.QuestUserService;
+import io.github.rysefoxx.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -42,7 +43,7 @@ public class QuestCancelOperation implements QuestOperation {
         String name = args[1];
         this.questService.findByName(name)
                 .thenCompose(questModel -> handleQuestModel(player, questModel, name))
-                .exceptionally(throwable -> handleError(player, "Error while searching for quest", throwable));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while searching for quest", throwable));
 
         return false;
     }
@@ -63,7 +64,7 @@ public class QuestCancelOperation implements QuestOperation {
 
         return questUserProgressService.findByUuid(player.getUniqueId())
                 .thenCompose(questUserProgressModels -> handleQuestUserProgress(player, questUserProgressModels, name))
-                .exceptionally(throwable -> handleError(player, "Error while searching for quest user progress", throwable));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while searching for quest user progress", throwable));
     }
 
     /**
@@ -98,7 +99,7 @@ public class QuestCancelOperation implements QuestOperation {
 
         return questUserProgressService.deleteQuest(player.getUniqueId(), name)
                 .thenCompose(progressResultType -> handleDeleteQuest(player, progressResultType, quest))
-                .exceptionally(e -> handleError(player, "Error while canceling quest", e));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while canceling quest", throwable));
     }
 
 
@@ -116,19 +117,5 @@ public class QuestCancelOperation implements QuestOperation {
                     scoreboardService.update(player);
                     languageService.sendTranslatedMessage(player, "quest_canceled_" + progressResultType.toString().toLowerCase());
                 });
-    }
-
-    /**
-     * Handles the error. The player will receive a message and the error will be logged.
-     *
-     * @param player    The player who executed the command.
-     * @param message   The message to send to the player.
-     * @param throwable The throwable to log.
-     * @return null.
-     */
-    private @Nullable Void handleError(@NotNull Player player, @NotNull String message, @NotNull Throwable throwable) {
-        player.sendRichMessage(message);
-        PlayLegendQuest.getLog().log(Level.SEVERE, message + ": " + throwable.getMessage(), throwable);
-        return null;
     }
 }

@@ -5,6 +5,7 @@ import io.github.rysefoxx.enums.QuestRewardType;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.reward.QuestRewardModel;
 import io.github.rysefoxx.reward.QuestRewardService;
+import io.github.rysefoxx.util.LogUtils;
 import io.github.rysefoxx.util.Maths;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
@@ -90,11 +91,7 @@ public class CommandQuestReward implements CommandExecutor {
 
         this.questRewardService.update(id, rewardString, type).thenAccept(resultType -> {
             this.languageService.sendTranslatedMessage(player, "quest_reward_update_" + resultType.toString().toLowerCase());
-        }).exceptionally(e -> {
-            player.sendRichMessage("An error occurred while updating the quest reward. Please try again later.");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "An error occurred while updating the quest reward.", e);
-            return null;
-        });
+        }).exceptionally(throwable -> LogUtils.handleError(player, "An error occurred while updating the quest reward.", throwable));
     }
 
     /**
@@ -112,11 +109,7 @@ public class CommandQuestReward implements CommandExecutor {
         long id = Long.parseLong(args[1]);
         this.questRewardService.delete(id).thenAccept(resultType -> {
             this.languageService.sendTranslatedMessage(player, "quest_reward_delete_" + resultType.toString().toLowerCase());
-        }).exceptionally(e -> {
-            player.sendRichMessage("An error occurred while deleting the quest reward. Please try again later.");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "An error occurred while deleting the quest reward.", e);
-            return null;
-        });
+        }).exceptionally(throwable -> LogUtils.handleError(player, "An error occurred while deleting the quest reward.", throwable));
     }
 
     /**
@@ -146,11 +139,7 @@ public class CommandQuestReward implements CommandExecutor {
 
         this.questRewardService.save(questRewardModel).thenAccept(resultType -> {
             this.languageService.sendTranslatedMessage(player, "quest_reward_save_" + resultType.toString().toLowerCase());
-        }).exceptionally(e -> {
-            player.sendRichMessage("An error occurred while saving the quest reward. Please try again later.");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "An error occurred while saving the quest reward.", e);
-            return null;
-        });
+        }).exceptionally(throwable -> LogUtils.handleError(player, "An error occurred while saving the quest reward.", throwable));
     }
 
     /**

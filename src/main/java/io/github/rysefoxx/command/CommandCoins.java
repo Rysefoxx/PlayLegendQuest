@@ -3,6 +3,7 @@ package io.github.rysefoxx.command;
 import io.github.rysefoxx.PlayLegendQuest;
 import io.github.rysefoxx.language.LanguageService;
 import io.github.rysefoxx.stats.PlayerStatisticsService;
+import io.github.rysefoxx.util.LogUtils;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -34,11 +35,7 @@ public class CommandCoins implements CommandExecutor {
             }
 
             this.languageService.sendTranslatedMessage(player, "player_coins", String.valueOf(playerStatisticsModel.getCoins()));
-        }).exceptionally(e -> {
-            player.sendRichMessage("An error occurred while loading your stats. Please try again later.");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "An error occurred while loading stats for player " + player.getName(), e);
-            return null;
-        });
+        }).exceptionally(throwable -> LogUtils.handleError(player, "An error occurred while loading your stats.", throwable));
 
         return false;
     }

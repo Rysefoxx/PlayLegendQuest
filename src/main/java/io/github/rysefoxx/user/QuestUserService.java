@@ -12,6 +12,7 @@ import io.github.rysefoxx.progress.QuestUserProgressService;
 import io.github.rysefoxx.quest.QuestModel;
 import io.github.rysefoxx.quest.QuestService;
 import io.github.rysefoxx.scoreboard.ScoreboardService;
+import io.github.rysefoxx.util.LogUtils;
 import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -97,8 +98,8 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
     private @NotNull CompletableFuture<@NotNull ResultType> refreshCache(@NotNull Long id) {
         return this.cache.synchronous().refresh(id)
                 .thenApply(v -> ResultType.SUCCESS)
-                .exceptionally(e -> {
-                    PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to refresh QuestUserModel cache: " + e.getMessage(), e);
+                .exceptionally(throwable -> {
+                    LogUtils.handleError(null, "Failed to refresh QuestUserModel cache", throwable);
                     return ResultType.ERROR;
                 });
     }
@@ -215,9 +216,10 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
                     cache.synchronous().invalidate(id);
 
                     return questUserProgressService.deleteQuest(questUserModel.getUuid(), quest.getName())
-                            .thenCompose(progressResultType -> questService.getCache().synchronous().refresh(quest.getName()).thenAccept(unused -> notifyPlayerOnExpiration(player, progressResultType)));
+                            .thenCompose(progressResultType -> questService.getCache().synchronous().refresh(quest.getName())
+                                    .thenAccept(unused -> notifyPlayerOnExpiration(player, progressResultType)));
                 })
-                .exceptionally(throwable -> handleError(player, throwable));
+                .exceptionally(throwable -> LogUtils.handleError(player, "Error while finding user progress", throwable));
     }
 
     /**
@@ -231,20 +233,5 @@ public class QuestUserService implements IDatabaseOperation<QuestUserModel, Long
 
         scoreboardService.update(player);
         languageService.sendTranslatedMessage(player, "quest_expired_" + progressResultType.toString().toLowerCase());
-    }
-
-    /**
-     * Handles an error that occurred while searching for quest user progress.
-     *
-     * @param player    The player to notify. Can be null.
-     * @param throwable The error that occurred.
-     * @return null
-     */
-    private @Nullable Void handleError(@Nullable Player player, @NotNull Throwable throwable) {
-        if (player != null) {
-            player.sendRichMessage("Error while searching for quest user progress");
-        }
-        PlayLegendQuest.getLog().log(Level.SEVERE, "Error while searching for quest user progress" + ": " + throwable.getMessage(), throwable);
-        return null;
     }
 }

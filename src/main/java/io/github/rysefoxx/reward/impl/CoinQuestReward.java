@@ -5,6 +5,7 @@ import io.github.rysefoxx.enums.QuestRewardType;
 import io.github.rysefoxx.enums.ResultType;
 import io.github.rysefoxx.reward.AbstractQuestReward;
 import io.github.rysefoxx.reward.QuestRewardModel;
+import io.github.rysefoxx.util.LogUtils;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -57,15 +58,7 @@ public class CoinQuestReward extends AbstractQuestReward<Long> {
                 if (resultType != ResultType.ERROR) return;
                 getLanguageService().sendTranslatedMessage(player, "quest_reward_error");
                 PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to save player statistics model");
-            }).exceptionally(e -> {
-                player.sendRichMessage("Failed to save player statistics model");
-                PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to save player statistics model", e);
-                return null;
-            });
-        }).exceptionally(e -> {
-            player.sendRichMessage("Failed to get player statistics model");
-            PlayLegendQuest.getLog().log(Level.SEVERE, "Failed to get player statistics model", e);
-            return null;
-        });
+            }).exceptionally(throwable -> LogUtils.handleError(player, "Failed to save player statistics model", throwable));
+        }).exceptionally(throwable -> LogUtils.handleError(player, "Failed to get player statistics model", throwable));
     }
 }
